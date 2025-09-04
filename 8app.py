@@ -2,7 +2,6 @@ import streamlit as st
 from fpdf import FPDF
 import io
 
-# ---------------- PDF Class ----------------
 class InvoicePDF(FPDF):
     def header(self):
         self.set_font("Arial", "B", 12)
@@ -11,40 +10,41 @@ class InvoicePDF(FPDF):
 
     def add_static_info(self):
         self.set_font("Arial", "", 10)
+        effective_width = self.w - 2*self.l_margin  # safe width
 
         # Supplier / Exporter
-        self.multi_cell(0, 6, "Supplier Name: SAR APPARELS INDIA PVT.LTD.")
-        self.multi_cell(0, 6, "ADDRESS : 6, Picaso Bithi, KOLKATA - 700017.")
-        self.multi_cell(0, 6, "PHONE : 9874173373")
-        self.multi_cell(0, 6, "FAX : N.A.")
+        self.multi_cell(effective_width, 6, "Supplier Name: SAR APPARELS INDIA PVT.LTD.")
+        self.multi_cell(effective_width, 6, "ADDRESS : 6, Picaso Bithi, KOLKATA - 700017.")
+        self.multi_cell(effective_width, 6, "PHONE : 9874173373")
+        self.multi_cell(effective_width, 6, "FAX : N.A.")
         self.ln(2)
 
         # Buyer / Consignee
-        self.multi_cell(0, 6, "Buyer Name: LANDMARK GROUP")
-        self.multi_cell(0, 6, "Brand Name: Juniors")
-        self.multi_cell(0, 6, "Consignee: RNA Resources Group Ltd- Landmark (Babyshop)")
-        self.multi_cell(0, 6, "P O Box 25030, Dubai, UAE")
-        self.multi_cell(0, 6, "Tel: 00971 4 8095500")
-        self.multi_cell(0, 6, "Fax: 00971 4 8095555/66")
+        self.multi_cell(effective_width, 6, "Buyer Name: LANDMARK GROUP")
+        self.multi_cell(effective_width, 6, "Brand Name: Juniors")
+        self.multi_cell(effective_width, 6, "Consignee: RNA Resources Group Ltd- Landmark (Babyshop)")
+        self.multi_cell(effective_width, 6, "P O Box 25030, Dubai, UAE")
+        self.multi_cell(effective_width, 6, "Tel: 00971 4 8095500")
+        self.multi_cell(effective_width, 6, "Fax: 00971 4 8095555/66")
         self.ln(2)
 
         # PI / Order details
-        self.multi_cell(0, 6, "No. & date of PI: SAR/LG/0148 Dt. 14-10-2024")
-        self.multi_cell(0, 6, "Landmark Order Reference: CPO/47062/25")
-        self.multi_cell(0, 6, "Payment Term: T/T")
-        self.multi_cell(0, 6, "Port of Loading: Mumbai")
-        self.multi_cell(0, 6, "Loading Country: India")
-        self.multi_cell(0, 6, "Agreed Shipment Date: 07-02-2025")
+        self.multi_cell(effective_width, 6, "No. & date of PI: SAR/LG/0148 Dt. 14-10-2024")
+        self.multi_cell(effective_width, 6, "Landmark Order Reference: CPO/47062/25")
+        self.multi_cell(effective_width, 6, "Payment Term: T/T")
+        self.multi_cell(effective_width, 6, "Port of Loading: Mumbai")
+        self.multi_cell(effective_width, 6, "Loading Country: India")
+        self.multi_cell(effective_width, 6, "Agreed Shipment Date: 07-02-2025")
         self.ln(2)
 
         # Bank details
-        self.multi_cell(0, 6, "Bank Details (Including Swift/IBAN)")
-        self.multi_cell(0, 6, "BENEFICIARY: SAR APPARELS INDIA PVT.LTD")
-        self.multi_cell(0, 6, "ACCOUNT NO: 2112819952")
-        self.multi_cell(0, 6, "BANK NAME: KOTAK MAHINDRA BANK LTD")
-        self.multi_cell(0, 6, "BANK ADDRESS: 2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001")
-        self.multi_cell(0, 6, "SWIFT CODE: KKBKINBBCPC")
-        self.multi_cell(0, 6, "BANK CODE: 0323")
+        self.multi_cell(effective_width, 6, "Bank Details (Including Swift/IBAN)")
+        self.multi_cell(effective_width, 6, "BENEFICIARY: SAR APPARELS INDIA PVT.LTD")
+        self.multi_cell(effective_width, 6, "ACCOUNT NO: 2112819952")
+        self.multi_cell(effective_width, 6, "BANK NAME: KOTAK MAHINDRA BANK LTD")
+        self.multi_cell(effective_width, 6, "BANK ADDRESS: 2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001")
+        self.multi_cell(effective_width, 6, "SWIFT CODE: KKBKINBBCPC")
+        self.multi_cell(effective_width, 6, "BANK CODE: 0323")
         self.ln(5)
 
     def add_table(self):
@@ -77,13 +77,12 @@ class InvoicePDF(FPDF):
         # Total
         self.set_font("Arial", "B", 10)
         self.cell(0, 10, "USD 79,758.00", new_x="LMARGIN", new_y="NEXT", align="R")
-        self.multi_cell(0, 8, "TOTAL US DOLLAR SEVENTY-NINE THOUSAND SEVEN HUNDRED FIFTY-EIGHT DOLLARS")
+        self.multi_cell(self.w - 2*self.l_margin, 8, "TOTAL US DOLLAR SEVENTY-NINE THOUSAND SEVEN HUNDRED FIFTY-EIGHT DOLLARS")
         self.ln(5)
-        self.multi_cell(0, 8, "Signed by ………………(…Affix Stamp here) for RNA Resources Group Ltd-Landmark (Babyshop)")
+        self.multi_cell(self.w - 2*self.l_margin, 8, "Signed by ………………(…Affix Stamp here) for RNA Resources Group Ltd-Landmark (Babyshop)")
         self.ln(10)
-        self.multi_cell(0, 8, "Terms & Conditions (If Any)")
+        self.multi_cell(self.w - 2*self.l_margin, 8, "Terms & Conditions (If Any)")
 
-# ---------------- PDF Generator ----------------
 def generate_invoice():
     pdf = InvoicePDF("P", "mm", "A4")
     pdf.add_page()
@@ -93,7 +92,6 @@ def generate_invoice():
     pdf_bytes = pdf.output(dest="S")
     return io.BytesIO(pdf_bytes)
 
-# ---------------- Streamlit App ----------------
 def main():
     st.title("📄 Proforma Invoice Generator")
 
