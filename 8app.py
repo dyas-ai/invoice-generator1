@@ -1,85 +1,99 @@
 import streamlit as st
 import pandas as pd
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from fpdf import FPDF
 import io
 
-# ===== PDF Generator =====
-def generate_proforma_invoice(df, output_buffer):
-    styles = getSampleStyleSheet()
-    doc = SimpleDocTemplate(output_buffer, pagesize=A4)
-    elements = []
+# ===== PDF Generator (fpdf2) =====
+class InvoicePDF(FPDF):
+    def header(self):
+        self.set_font("Helvetica", "B", 14)
+        self.cell(0, 10, "PROFORMA INVOICE", ln=True, align="C")
+        self.ln(5)
 
-    # ----- Header -----
-    elements.append(Paragraph("PROFORMA INVOICE", styles['Title']))
-    elements.append(Spacer(1, 12))
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
 
-    elements.append(Paragraph("Supplier: SAR APPARELS INDIA PVT.LTD.", styles['Normal']))
-    elements.append(Paragraph("Address: 6, Picaso Bithi, Kolkata - 700017", styles['Normal']))
-    elements.append(Paragraph("Phone: 9874173373", styles['Normal']))
-    elements.append(Spacer(1, 12))
 
-    elements.append(Paragraph("Buyer: LANDMARK GROUP", styles['Normal']))
-    elements.append(Paragraph("Consignee: RNA Resources Group Ltd - Landmark (Babyshop), Dubai, UAE", styles['Normal']))
-    elements.append(Spacer(1, 12))
+def generate_proforma_invoice(df):
+    pdf = InvoicePDF("P", "mm", "A4")
+    pdf.add_page()
 
-    elements.append(Paragraph("Brand Name: Juniors", styles['Normal']))
-    elements.append(Paragraph("Payment Term: T/T", styles['Normal']))
-    elements.append(Paragraph("Port of Loading: Mumbai", styles['Normal']))
-    elements.append(Paragraph("Loading Country: India", styles['Normal']))
-    elements.append(Spacer(1, 12))
+    # ===== Supplier / Buyer Info =====
+    pdf.set_font("Helvetica", size=10)
+    pdf.cell(0, 6, "Supplier: SAR APPARELS INDIA PVT.LTD.", ln=True)
+    pdf.cell(0, 6, "Address: 6, Picaso Bithi, Kolkata - 700017", ln=True)
+    pdf.cell(0, 6, "Phone: 9874173373", ln=True)
+    pdf.ln(5)
 
-    # ----- Table -----
-    table_data = [["STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
-                   "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE FOB", "AMOUNT"]]
+    pdf.cell(0, 6, "Buyer: LANDMARK GROUP", ln=True)
+    pdf.multi_cell(0, 6, "Consignee: RNA Resources Group Ltd - Landmark (Babyshop), Dubai, UAE")
+    pdf.ln(5)
+
+    pdf.cell(0, 6, "Brand Name: Juniors", ln=True)
+    pdf.cell(0, 6, "Payment Term: T/T", ln=True)
+    pdf.cell(0, 6, "Port of Loading: Mumbai", ln=True)
+    pdf.cell(0, 6, "Loading Country: India", ln=True)
+    pdf.ln(5)
+
+    # ===== Table Header =====
+    col_widths = [28, 35, 25, 20, 32, 28, 15, 18, 25]  # widths for each column
+    headers = ["STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
+               "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE", "AMOUNT"]
+
+    pdf.set_fill_color(60, 60, 60)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 8)
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 8, header, border=1, align="C", fill=True)
+    pdf.ln()
+
+    # ===== Table Rows =====
+    pdf.set_font("Helvetica", size=8)
+    pdf.set_text_color(0, 0, 0)
 
     total_qty = df["Total Qty"].sum()
     total_value = df["Total Value"].sum()
 
     for _, row in df.iterrows():
-        table_data.append([
-            row["Style"],
-            row["Description"],
+        row_data = [
+            str(row["Style"]),
+            str(row["Description"]),
             "KNITTED",       # fixed
             "61112000",      # fixed
-            row["Composition"],
+            str(row["Composition"]),
             "India",         # fixed
-            int(row["Total Qty"]),
+            str(int(row["Total Qty"])),
             f"{row['USD Fob$']:.2f}",
             f"{row['Total Value']:.2f}"
-        ])
+        ]
+        for i, item in enumerate(row_data):
+            pdf.cell(col_widths[i], 8, item, border=1, align="C")
+        pdf.ln()
 
-    table = Table(table_data, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.grey),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.whitesmoke),
-        ("ALIGN", (0,0), (-1,-1), "CENTER"),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 8),
-    ]))
-    elements.append(table)
-    elements.append(Spacer(1, 12))
+    pdf.ln(5)
 
-    # ----- Totals -----
-    elements.append(Paragraph(f"Total Quantity: {int(total_qty)}", styles['Normal']))
-    elements.append(Paragraph(f"TOTAL USD {total_value:,.2f}", styles['Normal']))
-    elements.append(Spacer(1, 12))
+    # ===== Totals =====
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, f"Total Quantity: {int(total_qty)}", ln=True)
+    pdf.cell(0, 6, f"TOTAL USD {total_value:,.2f}", ln=True)
+    pdf.ln(10)
 
-    # ----- Footer -----
-    elements.append(Paragraph("Bank: Kotak Mahindra Bank Ltd", styles['Normal']))
-    elements.append(Paragraph("SWIFT: KKBKINBBCPC", styles['Normal']))
-    elements.append(Spacer(1, 24))
-    elements.append(Paragraph("Signed by: __________________", styles['Normal']))
-    elements.append(Paragraph("For RNA Resources Group Ltd - Landmark (Babyshop)", styles['Normal']))
+    # ===== Footer / Bank Info =====
+    pdf.set_font("Helvetica", size=9)
+    pdf.cell(0, 6, "Bank: Kotak Mahindra Bank Ltd", ln=True)
+    pdf.cell(0, 6, "SWIFT: KKBKINBBCPC", ln=True)
+    pdf.ln(10)
 
-    # Build PDF
-    doc.build(elements)
+    pdf.cell(0, 6, "Signed by: __________________", ln=True)
+    pdf.multi_cell(0, 6, "For RNA Resources Group Ltd - Landmark (Babyshop)")
 
-# ===== Streamlit App =====
-st.title("📄 Proforma Invoice Generator")
+    return pdf.output(dest="S").encode("latin1")
+
+
+# ===== STREAMLIT APP =====
+st.title("📄 Proforma Invoice Generator (FPDF2)")
 
 uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
 
@@ -108,13 +122,12 @@ if uploaded_file:
 
     # ---- PDF Generation ----
     if st.button("Generate PDF"):
-        output_buffer = io.BytesIO()
-        generate_proforma_invoice(df, output_buffer)
+        pdf_bytes = generate_proforma_invoice(df)
         st.success("✅ PDF generated successfully!")
 
         st.download_button(
             label="📥 Download Invoice PDF",
-            data=output_buffer.getvalue(),
+            data=pdf_bytes,
             file_name="Proforma_Invoice.pdf",
             mime="application/pdf"
         )
