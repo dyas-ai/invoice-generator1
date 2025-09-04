@@ -1,139 +1,105 @@
 import streamlit as st
-import pandas as pd
 from fpdf import FPDF
 import io
-from datetime import datetime
 
-# ---------------- PDF Generator ----------------
-class PDF(FPDF):
-    def header(self):
-        self.set_font("Helvetica", "B", 12)
-        self.cell(0, 10, "Proforma Invoice", ln=True, align="C")
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.cell(0, 10, f"Page {self.page_no()}", align="C")
-
-def generate_invoice(df, pi_number=None, po_number=None):
-    pdf = PDF()
+def generate_static_invoice(pi_number="PI-001", po_number="PO-001", date="2025-09-04"):
+    pdf = FPDF("P", "mm", "A4")
     pdf.add_page()
-    pdf.set_font("Helvetica", size=10)
+    pdf.set_font("Helvetica", "B", 14)
 
-    # ---- Header Info ----
-    pdf.cell(0, 10, f"PI Number: {pi_number or 'N/A'}", ln=True)
-    pdf.cell(0, 10, f"PO Number: {po_number or 'N/A'}", ln=True)
-    pdf.cell(0, 10, f"Date: {datetime.today().strftime('%d-%m-%Y')}", ln=True)
+    # ---- Title ----
+    pdf.cell(0, 10, "PROFORMA INVOICE", ln=True, align="C")
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.ln(5)
+    pdf.cell(0, 6, f"PI No: {pi_number}", ln=True)
+    pdf.cell(0, 6, f"PO No: {po_number}", ln=True)
+    pdf.cell(0, 6, f"Date: {date}", ln=True)
+
+    pdf.ln(8)
+
+    # ---- Parties ----
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(95, 6, "Supplier:", border=1)
+    pdf.cell(95, 6, "Buyer:", border=1, ln=True)
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(95, 6, "Your Company Name\nAddress Line 1\nCity, Country", border=1)
+    x = pdf.get_x()
+    y = pdf.get_y() - 18
+    pdf.set_xy(x+95, y)
+    pdf.multi_cell(95, 6, "Buyer Name\nBuyer Address Line 1\nCity, Country", border=1)
+
     pdf.ln(5)
 
+    # ---- Bank Details ----
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Bank Details:", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(0, 6, "Bank Name: Example Bank\nAccount No: 123456789\nSWIFT: EXAMPLExx\nBranch: City Branch")
+
+    pdf.ln(8)
+
     # ---- Table Header ----
-    col_names = list(df.columns)
-    col_widths = [30, 40, 30, 25, 25, 30]  # adjust widths
-    for i, col in enumerate(col_names):
-        pdf.cell(col_widths[i % len(col_widths)], 8, col, border=1, align="C")
-    pdf.ln()
-
-    # ---- Table Rows ----
-    for _, row in df.iterrows():
-        for i, col in enumerate(col_names):
-            pdf.cell(col_widths[i % len(col_widths)], 8, str(row[col]), border=1)
-        pdf.ln()
-
-    # ---- Totals ----
-    if "Total Qty" in df.columns:
-        pdf.ln(5)
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 10, f"Grand Total Qty: {df['Total Qty'].sum()}", ln=True)
-    if "Total Value" in df.columns:
-        pdf.cell(0, 10, f"Grand Total Value: {df['Total Value'].sum():,.2f}", ln=True)
-
-    # ---- Save PDF ----
-    buffer = io.BytesIO()
-    pdf.output(buffer)
-    buffer.seek(0)
-    return buffer
-
-# ---------------- Streamlit App ----------------
-st.title("📄 Excel → Invoice Generator")
-
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
-
-if uploaded_file:
-    # ---- Read multi-row headers ----
-    df = pd.read_excel(uploaded_file, header=[0, 1])
-
-    # ---- Flatten headers ----
-    df.columns = [
-        " ".join([str(c).strip() for c in col if str(c).strip() != ""])
-        for col in df.columns.values
+    pdf.set_font("Helvetica", "B", 8)
+    col_widths = [20, 30, 22, 22, 22, 35, 28, 15, 20, 25]  
+    headers = [
+        "STYLE NO.",
+        "ITEM DESCRIPTION",
+        "FABRIC TYPE",
+        "KNITTED/WOVEN",
+        "H.S NO (8digit)",
+        "COMPOSITION OF MATERIAL",
+        "COUNTRY OF ORIGIN",
+        "QTY",
+        "UNIT PRICE FOB",
+        "AMOUNT"
     ]
 
-    # ---- Normalize headers ----
-    df.columns = (
-        df.columns.str.strip()
-        .str.lower()
-        .str.replace("$", "", regex=False)
-        .str.replace("  ", " ")
+    for i, header in enumerate(headers):
+        pdf.multi_cell(col_widths[i], 10, header, border=1, align="C", max_line_height=4)
+        x = pdf.get_x() + col_widths[i]
+        y = pdf.get_y() - 10
+        pdf.set_xy(x, y)
+    pdf.ln()
+
+    # ---- Placeholder Rows ----
+    pdf.set_font("Helvetica", "", 8)
+    for _ in range(5):  # Just 5 sample rows
+        row_data = [
+            "123",
+            "Sample Item",
+            "Cotton",
+            "Knitted",
+            "62034200",
+            "100% Cotton",
+            "India",
+            "500",
+            "5.00",
+            "2500.00"
+        ]
+        for i, val in enumerate(row_data):
+            pdf.cell(col_widths[i], 8, val, border=1, align="C")
+        pdf.ln()
+
+    # ---- Footer / Signature ----
+    pdf.ln(10)
+    pdf.cell(0, 6, "For Your Company Name", ln=True, align="R")
+    pdf.ln(15)
+    pdf.cell(0, 6, "Authorised Signatory", ln=True, align="R")
+
+    # ---- Output ----
+    pdf_bytes = pdf.output(dest="S").encode("latin1")
+    return io.BytesIO(pdf_bytes)
+
+# ---- Streamlit UI ----
+st.title("📄 Proforma Invoice Generator (Static Test)")
+
+if st.button("Generate Sample Invoice"):
+    pdf_file = generate_static_invoice()
+    st.download_button(
+        label="⬇️ Download Invoice PDF",
+        data=pdf_file,
+        file_name="proforma_invoice.pdf",
+        mime="application/pdf"
     )
-
-    # ---- Map variations → standard ----
-    col_map = {
-        "style": "Style",
-        "style no": "Style",
-        "styleno": "Style",
-        "description": "Description",
-        "descreption": "Description",
-        "composition": "Composition",
-        "material composition": "Composition",
-        "usd fob": "USD Fob$",
-        "fob usd": "USD Fob$",
-        "usd fob$": "USD Fob$",
-        "total qty": "Total Qty",
-        "total quantity": "Total Qty",
-        "quantity total": "Total Qty",
-        "total value": "Total Value",
-        "value total": "Total Value",
-        "totalvalue": "Total Value",
-    }
-    df = df.rename(columns=lambda c: col_map.get(c, c))
-
-    # ---- Required Columns ----
-    required_cols = ["Style", "Description", "Composition", "USD Fob$", "Total Qty", "Total Value"]
-    if not set(required_cols[:-1]).issubset(df.columns):
-        st.error(f"❌ Missing required columns in Excel. Found: {list(df.columns)}")
-        st.stop()
-
-    # ---- Auto-calc Total Value if missing ----
-    if "Total Value" not in df.columns:
-        df["Total Value"] = df["Total Qty"] * df["USD Fob$"]
-    else:
-        df["Total Value"] = df["Total Value"].fillna(df["Total Qty"] * df["USD Fob$"])
-
-    # ---- Group by Style, Description, Composition, Price ----
-    df = df.groupby(
-        ["Style", "Description", "Composition", "USD Fob$"],
-        as_index=False
-    ).agg({
-        "Total Qty": "sum",
-        "Total Value": "sum"
-    })
-
-    # Reorder columns
-    df = df[required_cols]
-
-    st.success("✅ Excel processed & grouped successfully!")
-    st.dataframe(df)
-
-    # ---- Input fields ----
-    pi_number = st.text_input("Enter PI Number")
-    po_number = st.text_input("Enter PO Number")
-
-    # ---- Generate PDF ----
-    if st.button("Generate Invoice PDF"):
-        buffer = generate_invoice(df, pi_number, po_number)
-        st.download_button(
-            label="⬇️ Download Invoice",
-            data=buffer,
-            file_name=f"Invoice_{pi_number or 'NA'}.pdf",
-            mime="application/pdf",
-        )
