@@ -1,8 +1,12 @@
 import streamlit as st
+import pandas as pd
 from fpdf import FPDF
 import io
 
-def generate_static_invoice(pi_number="PI-001", po_number="PO-001", date="2025-09-04"):
+# --------------------
+# PDF Generator
+# --------------------
+def generate_invoice(df, pi_number="PI-001", po_number="PO-001", date="2025-09-04"):
     pdf = FPDF("P", "mm", "A4")
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 14)
@@ -63,20 +67,20 @@ def generate_static_invoice(pi_number="PI-001", po_number="PO-001", date="2025-0
         pdf.set_xy(x, y)
     pdf.ln()
 
-    # ---- Placeholder Rows ----
+    # ---- Table Data from Excel ----
     pdf.set_font("Helvetica", "", 8)
-    for _ in range(5):  # Just 5 sample rows
+    for _, row in df.iterrows():
         row_data = [
-            "123",
-            "Sample Item",
-            "Cotton",
-            "Knitted",
-            "62034200",
-            "100% Cotton",
-            "India",
-            "500",
-            "5.00",
-            "2500.00"
+            str(row.get("Style", "")),
+            str(row.get("Description", "")),
+            str(row.get("Fabric Type", "")),
+            str(row.get("Knitted/Woven", "")),
+            str(row.get("HS Code", "")),
+            str(row.get("Composition", "")),
+            str(row.get("Country of Origin", "")),
+            str(row.get("Qty", "")),
+            str(row.get("Unit Price", "")),
+            str(row.get("Amount", ""))
         ]
         for i, val in enumerate(row_data):
             pdf.cell(col_widths[i], 8, val, border=1, align="C")
@@ -89,17 +93,31 @@ def generate_static_invoice(pi_number="PI-001", po_number="PO-001", date="2025-0
     pdf.cell(0, 6, "Authorised Signatory", ln=True, align="R")
 
     # ---- Output ----
-    pdf_bytes = pdf.output(dest="S").encode("latin1")
+    pdf_bytes = pdf.output(dest="S")
     return io.BytesIO(pdf_bytes)
 
-# ---- Streamlit UI ----
-st.title("📄 Proforma Invoice Generator (Static Test)")
 
-if st.button("Generate Sample Invoice"):
-    pdf_file = generate_static_invoice()
-    st.download_button(
-        label="⬇️ Download Invoice PDF",
-        data=pdf_file,
-        file_name="proforma_invoice.pdf",
-        mime="application/pdf"
-    )
+# --------------------
+# Streamlit UI
+# --------------------
+st.title("📄 Proforma Invoice Generator")
+
+uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
+
+if uploaded_file:
+    try:
+        df = pd.read_excel(uploaded_file, header=[0,1])
+        df.columns = [' '.join([str(c) for c in col]).strip() for col in df.columns.values]
+    except Exception:
+        df = pd.read_excel(uploaded_file)
+
+    st.write("✅ Excel loaded:", df.head())
+
+    if st.button("Generate Invoice PDF"):
+        pdf_file = generate_invoice(df)
+        st.download_button(
+            label="⬇️ Download Invoice PDF",
+            data=pdf_file,
+            file_name="proforma_invoice.pdf",
+            mime="application/pdf"
+        )
