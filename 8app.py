@@ -4,102 +4,136 @@ from fpdf import FPDF
 import io
 from datetime import datetime
 
-# ---------------- PDF GENERATOR ----------------
-def generate_invoice(df, pi_number="PI-0001", po_number="PO-0001", buyer="Sample Buyer", seller="Sample Seller"):
-    pdf = FPDF("P", "mm", "A4")
+# ---------------- PDF Generator ----------------
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Helvetica", "B", 12)
+        self.cell(0, 10, "Proforma Invoice", ln=True, align="C")
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+
+def generate_invoice(df, pi_number=None, po_number=None):
+    pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Arial", "B", 14)
+    pdf.set_font("Helvetica", size=10)
 
-    # ---- Title ----
-    pdf.cell(200, 10, "PROFORMA INVOICE", ln=True, align="C")
-
-    pdf.set_font("Arial", size=10)
-    pdf.cell(100, 8, f"Proforma Invoice No: {pi_number}", ln=0)
-    pdf.cell(100, 8, f"Date: {datetime.today().strftime('%d-%m-%Y')}", ln=1)
-
-    pdf.cell(100, 8, f"Purchase Order No: {po_number}", ln=0)
-    pdf.cell(100, 8, f"Buyer: {buyer}", ln=1)
-    pdf.cell(100, 8, f"Seller: {seller}", ln=1)
+    # ---- Header Info ----
+    pdf.cell(0, 10, f"PI Number: {pi_number or 'N/A'}", ln=True)
+    pdf.cell(0, 10, f"PO Number: {po_number or 'N/A'}", ln=True)
+    pdf.cell(0, 10, f"Date: {datetime.today().strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
     # ---- Table Header ----
-    pdf.set_font("Arial", "B", 9)
-    headers = ["Style", "Description", "Composition", "USD Fob$", "Total Qty", "Total Value"]
-    col_widths = [25, 55, 40, 25, 25, 25]
-
-    for i, header in enumerate(headers):
-        pdf.cell(col_widths[i], 8, header, border=1, align="C")
+    col_names = list(df.columns)
+    col_widths = [30, 40, 30, 25, 25, 30]  # adjust widths
+    for i, col in enumerate(col_names):
+        pdf.cell(col_widths[i % len(col_widths)], 8, col, border=1, align="C")
     pdf.ln()
 
     # ---- Table Rows ----
-    pdf.set_font("Arial", size=9)
     for _, row in df.iterrows():
-        pdf.cell(col_widths[0], 8, str(row["Style"]), border=1)
-        pdf.cell(col_widths[1], 8, str(row["Description"]), border=1)
-        pdf.cell(col_widths[2], 8, str(row["Composition"]), border=1)
-        pdf.cell(col_widths[3], 8, str(row["USD Fob$"]), border=1, align="R")
-        pdf.cell(col_widths[4], 8, str(row["Total Qty"]), border=1, align="R")
-        pdf.cell(col_widths[5], 8, str(row["Total Value"]), border=1, align="R")
+        for i, col in enumerate(col_names):
+            pdf.cell(col_widths[i % len(col_widths)], 8, str(row[col]), border=1)
         pdf.ln()
 
     # ---- Totals ----
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(145, 8, "TOTAL", border=1, align="R")
-    pdf.cell(25, 8, str(df["Total Qty"].sum()), border=1, align="R")
-    pdf.cell(25, 8, str(df["Total Value"].sum()), border=1, align="R")
-    pdf.ln(15)
+    if "Total Qty" in df.columns:
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(0, 10, f"Grand Total Qty: {df['Total Qty'].sum()}", ln=True)
+    if "Total Value" in df.columns:
+        pdf.cell(0, 10, f"Grand Total Value: {df['Total Value'].sum():,.2f}", ln=True)
 
-    pdf.cell(0, 8, "Authorized Signatory", ln=True, align="R")
+    # ---- Save PDF ----
+    buffer = io.BytesIO()
+    pdf.output(buffer)
+    buffer.seek(0)
+    return buffer
 
-    # ---- Return Bytes ----
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-    return pdf_output
+# ---------------- Streamlit App ----------------
+st.title("📄 Excel → Invoice Generator")
 
-
-# ---------------- STREAMLIT APP ----------------
-st.title("📄 Proforma Invoice Generator")
-
-uploaded_file = st.file_uploader("Upload Excel Invoice", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    # ---- Read Excel with multi-row headers ----
+    # ---- Read multi-row headers ----
     df = pd.read_excel(uploaded_file, header=[0, 1])
-    df.columns = [' '.join([str(c) for c in col]).strip() for col in df.columns.values]
+
+    # ---- Flatten headers ----
+    df.columns = [
+        " ".join([str(c).strip() for c in col if str(c).strip() != ""])
+        for col in df.columns.values
+    ]
 
     # ---- Normalize headers ----
-    rename_map = {
-        "Descreption ": "Description",
-        "Descreption": "Description",
-        "Material Composition": "Composition",
-        "USD FOB": "USD Fob$",
-        "USD FOB$": "USD Fob$",
-        "USD FOB $": "USD Fob$",
+    df.columns = (
+        df.columns.str.strip()
+        .str.lower()
+        .str.replace("$", "", regex=False)
+        .str.replace("  ", " ")
+    )
+
+    # ---- Map variations → standard ----
+    col_map = {
+        "style": "Style",
+        "style no": "Style",
+        "styleno": "Style",
+        "description": "Description",
+        "descreption": "Description",
+        "composition": "Composition",
+        "material composition": "Composition",
+        "usd fob": "USD Fob$",
+        "fob usd": "USD Fob$",
+        "usd fob$": "USD Fob$",
+        "total qty": "Total Qty",
+        "total quantity": "Total Qty",
+        "quantity total": "Total Qty",
+        "total value": "Total Value",
+        "value total": "Total Value",
+        "totalvalue": "Total Value",
     }
-    df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+    df = df.rename(columns=lambda c: col_map.get(c, c))
 
     # ---- Required Columns ----
     required_cols = ["Style", "Description", "Composition", "USD Fob$", "Total Qty", "Total Value"]
-    missing = [col for col in required_cols if col not in df.columns]
-
-    if missing:
-        st.error(f"❌ Missing required columns in Excel: {missing}")
+    if not set(required_cols[:-1]).issubset(df.columns):
+        st.error(f"❌ Missing required columns in Excel. Found: {list(df.columns)}")
         st.stop()
 
-    # ---- Keep only needed columns ----
+    # ---- Auto-calc Total Value if missing ----
+    if "Total Value" not in df.columns:
+        df["Total Value"] = df["Total Qty"] * df["USD Fob$"]
+    else:
+        df["Total Value"] = df["Total Value"].fillna(df["Total Qty"] * df["USD Fob$"])
+
+    # ---- Group by Style, Description, Composition, Price ----
+    df = df.groupby(
+        ["Style", "Description", "Composition", "USD Fob$"],
+        as_index=False
+    ).agg({
+        "Total Qty": "sum",
+        "Total Value": "sum"
+    })
+
+    # Reorder columns
     df = df[required_cols]
 
-    # ---- Show Processed Data ----
-    st.write("✅ Processed Invoice Data:")
+    st.success("✅ Excel processed & grouped successfully!")
     st.dataframe(df)
 
+    # ---- Input fields ----
+    pi_number = st.text_input("Enter PI Number")
+    po_number = st.text_input("Enter PO Number")
+
     # ---- Generate PDF ----
-    if st.button("Generate PDF"):
-        pdf_file = generate_invoice(df)
+    if st.button("Generate Invoice PDF"):
+        buffer = generate_invoice(df, pi_number, po_number)
         st.download_button(
-            label="📥 Download Invoice PDF",
-            data=pdf_file,
-            file_name="proforma_invoice.pdf",
-            mime="application/pdf"
+            label="⬇️ Download Invoice",
+            data=buffer,
+            file_name=f"Invoice_{pi_number or 'NA'}.pdf",
+            mime="application/pdf",
         )
