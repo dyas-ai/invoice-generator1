@@ -100,11 +100,13 @@ uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
 if uploaded_file:
     # ---- Read Excel with multi-row headers ----
     df = pd.read_excel(uploaded_file, header=[0,1])
-    df.columns = [' '.join(col).strip() for col in df.columns.values]  # flatten
+    df.columns = [' '.join([str(c) for c in col]).strip() for col in df.columns.values]  # safe flatten
 
     # ---- Fix column names ----
     if "Descreption " in df.columns:
         df = df.rename(columns={"Descreption ": "Description"})
+    if "Descreption" in df.columns:
+        df = df.rename(columns={"Descreption": "Description"})
     if "Material Composition" in df.columns:
         df = df.rename(columns={"Material Composition": "Composition"})
 
