@@ -6,51 +6,82 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 
-# ===== Preprocess Excel Data =====
-def preprocess_excel(df):
-    """
-    Cleans and aggregates Excel data based on the mapping:
-    STYLE NO → Style
-    ITEM DESCRIPTION → Descreption
-    FABRIC TYPE → (blank)
-    HS CODE → (blank)
-    COMPOSITION → Composition
-    COUNTRY OF ORIGIN → "India"
-    QTY → sum of Total Qty
-    UNIT PRICE → Fob$
-    AMOUNT → recomputed = Qty × Unit Price
-    """
+# ===== Flexible Preprocess Excel with Auto Column Mapping =====
+def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
+    df_raw = pd.read_excel(uploaded_file, header=None)
 
-    # Rename columns to standard names
-    df = df.rename(columns={
-        "Style": "STYLE NO",
-        "Descreption": "ITEM DESCRIPTION",   # handle Excel typo
-        "Composition": "COMPOSITION",
-        "Fob$": "UNIT PRICE",
-        "Total Qty": "QTY",
-        "Total Value": "AMOUNT"
-    })
+    header_row_idx = None
+    stacked_header_idx = None
 
-    # Convert numeric fields safely
+    # Step 1: Detect header row (row containing "Style")
+    for i in range(min(max_rows, len(df_raw))):
+        row = df_raw.iloc[i].astype(str)
+        if row.str.contains("Style", case=False, na=False).any():
+            header_row_idx = i
+            stacked_header_idx = i - 1
+            break
+
+    if header_row_idx is None:
+        raise ValueError("Could not detect header row with 'Style' column!")
+
+    # Step 2: Combine stacked headers if present
+    if stacked_header_idx >= 0:
+        headers = df_raw.iloc[stacked_header_idx].fillna('') + ' ' + df_raw.iloc[header_row_idx].fillna('')
+    else:
+        headers = df_raw.iloc[header_row_idx].fillna('')
+
+    headers = headers.str.strip()
+
+    # Step 3: Define possible column names for mapping
+    col_map = {
+        "STYLE NO": ["Style", "Style No", "Item Style"],
+        "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc"],
+        "COMPOSITION": ["Composition", "Fabric Composition"],
+        "UNIT PRICE": ["Fob$", "USD Fob$", "Fob USD", "Fob $"],
+        "QTY": ["Total Qty", "Quantity", "Qty"],
+        "AMOUNT": ["Total Value", "Amount", "Value"]
+    }
+
+    # Step 4: Map columns automatically
+    df_columns = {}
+    for target_col, variants in col_map.items():
+        for var in variants:
+            matched_cols = [c for c in headers if var.lower() in str(c).lower()]
+            if matched_cols:
+                df_columns[target_col] = matched_cols[0]
+                break
+        if target_col not in df_columns:
+            df_columns[target_col] = None  # Column not found
+
+    # Step 5: Select data rows (rows after header)
+    df = df_raw.iloc[header_row_idx + 1:].copy()
+    df.columns = headers
+    df = df.reset_index(drop=True)
+
+    # Step 6: Rename columns to standard names
+    rename_dict = {v: k for k, v in df_columns.items() if v is not None}
+    df = df.rename(columns=rename_dict)
+
+    # Step 7: Convert numeric fields
     df["QTY"] = pd.to_numeric(df["QTY"], errors="coerce").fillna(0).astype(int)
     df["UNIT PRICE"] = pd.to_numeric(df["UNIT PRICE"], errors="coerce").fillna(0.0)
 
-    # Group by style + description + composition + unit price
+    # Step 8: Aggregate per unique style
     grouped = (
         df.groupby(["STYLE NO", "ITEM DESCRIPTION", "COMPOSITION", "UNIT PRICE"], dropna=False)
         .agg({"QTY": "sum"})
         .reset_index()
     )
 
-    # Compute AMOUNT
+    # Step 9: Compute Amount = QTY × UNIT PRICE
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Add static columns
+    # Step 10: Add static PDF columns
     grouped["FABRIC TYPE"] = ""
     grouped["HS CODE"] = ""
     grouped["COUNTRY OF ORIGIN"] = "India"
 
-    # Reorder columns for PDF
+    # Step 11: Reorder columns for PDF
     grouped = grouped[
         ["STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
          "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE", "AMOUNT"]
@@ -58,37 +89,32 @@ def preprocess_excel(df):
 
     return grouped
 
-
 # ===== PDF Generator =====
 def generate_proforma_invoice(df):
-    df = preprocess_excel(df)  # 🔥 apply mapping + aggregation
     buffer = io.BytesIO()
     styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     elements = []
 
-    # --- Header ---
+    # Header
     elements.append(Paragraph("PROFORMA INVOICE", styles['Title']))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Supplier: SAR APPARELS INDIA PVT.LTD.", styles['Normal']))
     elements.append(Paragraph("Address: 6, Picaso Bithi, Kolkata - 700017", styles['Normal']))
     elements.append(Paragraph("Phone: 9874173373", styles['Normal']))
     elements.append(Spacer(1, 12))
-
     elements.append(Paragraph("Buyer: LANDMARK GROUP", styles['Normal']))
     elements.append(Paragraph("Consignee: RNA Resources Group Ltd - Landmark (Babyshop), Dubai, UAE", styles['Normal']))
     elements.append(Spacer(1, 12))
-
     elements.append(Paragraph("Brand Name: Juniors", styles['Normal']))
     elements.append(Paragraph("Payment Term: T/T", styles['Normal']))
     elements.append(Paragraph("Port of Loading: Mumbai", styles['Normal']))
     elements.append(Paragraph("Loading Country: India", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # --- Table ---
+    # Table
     headers = df.columns.tolist()
     table_data = [headers]
-
     for _, row in df.iterrows():
         table_data.append([
             row["STYLE NO"],
@@ -101,7 +127,6 @@ def generate_proforma_invoice(df):
             f"{row['UNIT PRICE']:.2f}",
             f"{row['AMOUNT']:.2f}"
         ])
-
     table = Table(table_data, repeatRows=1)
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
@@ -114,15 +139,14 @@ def generate_proforma_invoice(df):
     elements.append(table)
     elements.append(Spacer(1, 12))
 
-    # --- Totals ---
+    # Totals
     total_qty = df["QTY"].sum()
     total_amount = df["AMOUNT"].sum()
-
     elements.append(Paragraph(f"Total Quantity: {total_qty}", styles['Normal']))
     elements.append(Paragraph(f"TOTAL USD {total_amount:,.2f}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # --- Footer ---
+    # Footer
     elements.append(Paragraph("Bank: Kotak Mahindra Bank Ltd", styles['Normal']))
     elements.append(Paragraph("SWIFT: KKBKINBBCPC", styles['Normal']))
     elements.append(Spacer(1, 24))
@@ -133,7 +157,6 @@ def generate_proforma_invoice(df):
     buffer.seek(0)
     return buffer
 
-
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
 st.title("📄 Proforma Invoice Generator")
@@ -141,18 +164,19 @@ st.title("📄 Proforma Invoice Generator")
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file is not None:
-    df = pd.read_excel(uploaded_file)
+    try:
+        df = preprocess_excel_flexible_auto(uploaded_file)
+        st.write("### Preview of Processed Data")
+        st.dataframe(df)
 
-    st.write("### Preview of Uploaded Data")
-    st.dataframe(df)
-
-    if st.button("Generate PDF"):
-        pdf_buffer = generate_proforma_invoice(df)
-        st.success("✅ PDF Generated Successfully!")
-
-        st.download_button(
-            label="⬇️ Download Proforma Invoice",
-            data=pdf_buffer,
-            file_name="Proforma_Invoice.pdf",
-            mime="application/pdf"
-        )
+        if st.button("Generate PDF"):
+            pdf_buffer = generate_proforma_invoice(df)
+            st.success("✅ PDF Generated Successfully!")
+            st.download_button(
+                label="⬇️ Download Proforma Invoice",
+                data=pdf_buffer,
+                file_name="Proforma_Invoice.pdf",
+                mime="application/pdf"
+            )
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
