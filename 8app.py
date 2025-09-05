@@ -6,14 +6,68 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 
-# ===== PDF Generator Function =====
+# ===== Preprocess Excel Data =====
+def preprocess_excel(df):
+    """
+    Cleans and aggregates Excel data based on the mapping:
+    STYLE NO → Style
+    ITEM DESCRIPTION → Descreption
+    FABRIC TYPE → (blank)
+    HS CODE → (blank)
+    COMPOSITION → Composition
+    COUNTRY OF ORIGIN → "India"
+    QTY → sum of Total Qty
+    UNIT PRICE → Fob$
+    AMOUNT → recomputed = Qty × Unit Price
+    """
+
+    # Rename columns to standard names
+    df = df.rename(columns={
+        "Style": "STYLE NO",
+        "Descreption": "ITEM DESCRIPTION",   # handle Excel typo
+        "Composition": "COMPOSITION",
+        "Fob$": "UNIT PRICE",
+        "Total Qty": "QTY",
+        "Total Value": "AMOUNT"
+    })
+
+    # Convert numeric fields safely
+    df["QTY"] = pd.to_numeric(df["QTY"], errors="coerce").fillna(0).astype(int)
+    df["UNIT PRICE"] = pd.to_numeric(df["UNIT PRICE"], errors="coerce").fillna(0.0)
+
+    # Group by style + description + composition + unit price
+    grouped = (
+        df.groupby(["STYLE NO", "ITEM DESCRIPTION", "COMPOSITION", "UNIT PRICE"], dropna=False)
+        .agg({"QTY": "sum"})
+        .reset_index()
+    )
+
+    # Compute AMOUNT
+    grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
+
+    # Add static columns
+    grouped["FABRIC TYPE"] = ""
+    grouped["HS CODE"] = ""
+    grouped["COUNTRY OF ORIGIN"] = "India"
+
+    # Reorder columns for PDF
+    grouped = grouped[
+        ["STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
+         "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE", "AMOUNT"]
+    ]
+
+    return grouped
+
+
+# ===== PDF Generator =====
 def generate_proforma_invoice(df):
+    df = preprocess_excel(df)  # 🔥 apply mapping + aggregation
     buffer = io.BytesIO()
     styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     elements = []
 
-    # Header
+    # --- Header ---
     elements.append(Paragraph("PROFORMA INVOICE", styles['Title']))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Supplier: SAR APPARELS INDIA PVT.LTD.", styles['Normal']))
@@ -31,30 +85,21 @@ def generate_proforma_invoice(df):
     elements.append(Paragraph("Loading Country: India", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # Table
-    table_data = [["STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
-                   "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE", "AMOUNT"]]
-
-    total_qty = 0
-    total_amount = 0
+    # --- Table ---
+    headers = df.columns.tolist()
+    table_data = [headers]
 
     for _, row in df.iterrows():
-        qty = row.get("Qty", 0)
-        price = row.get("Unit Price", 0)
-        amount = row.get("Amount", 0)
-        total_qty += qty
-        total_amount += amount
-
         table_data.append([
-            row.get("StyleID", ""),
-            row.get("Item Description", ""),
-            row.get("Fabric Type", ""),
-            row.get("HS Code", ""),
-            row.get("Composition", ""),
-            row.get("Country of Origin", ""),
-            qty,
-            price,
-            amount
+            row["STYLE NO"],
+            row["ITEM DESCRIPTION"],
+            row["FABRIC TYPE"],
+            row["HS CODE"],
+            row["COMPOSITION"],
+            row["COUNTRY OF ORIGIN"],
+            int(row["QTY"]),
+            f"{row['UNIT PRICE']:.2f}",
+            f"{row['AMOUNT']:.2f}"
         ])
 
     table = Table(table_data, repeatRows=1)
@@ -69,12 +114,15 @@ def generate_proforma_invoice(df):
     elements.append(table)
     elements.append(Spacer(1, 12))
 
-    # Totals
+    # --- Totals ---
+    total_qty = df["QTY"].sum()
+    total_amount = df["AMOUNT"].sum()
+
     elements.append(Paragraph(f"Total Quantity: {total_qty}", styles['Normal']))
     elements.append(Paragraph(f"TOTAL USD {total_amount:,.2f}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # Footer
+    # --- Footer ---
     elements.append(Paragraph("Bank: Kotak Mahindra Bank Ltd", styles['Normal']))
     elements.append(Paragraph("SWIFT: KKBKINBBCPC", styles['Normal']))
     elements.append(Spacer(1, 24))
