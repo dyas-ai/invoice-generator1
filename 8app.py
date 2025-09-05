@@ -5,6 +5,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import io
+from datetime import datetime
 
 # ===== Flexible Preprocess Excel with Auto Column Mapping + Strict Row Cleanup =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
@@ -133,15 +134,20 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     return grouped
 
+
 # ===== PDF Generator =====
-def generate_proforma_invoice(df):
+def generate_proforma_invoice(df, invoice_number):
     buffer = io.BytesIO()
     styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     elements = []
 
+    invoice_date = datetime.today().strftime("%d-%b-%Y")
+
     # Header
     elements.append(Paragraph("PROFORMA INVOICE", styles["Title"]))
+    elements.append(Paragraph(f"Proforma Invoice No.: {invoice_number}", styles["Normal"]))
+    elements.append(Paragraph(f"Date: {invoice_date}", styles["Normal"]))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Supplier: SAR APPARELS INDIA PVT.LTD.", styles["Normal"]))
     elements.append(Paragraph("Address: 6, Picaso Bithi, Kolkata - 700017", styles["Normal"]))
@@ -207,11 +213,13 @@ def generate_proforma_invoice(df):
     buffer.seek(0)
     return buffer
 
+
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
 st.title("📄 Proforma Invoice Generator")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+invoice_number = st.text_input("Enter Proforma Invoice Number", "SAR/LG/0148")
 
 if uploaded_file is not None:
     try:
@@ -220,12 +228,12 @@ if uploaded_file is not None:
         st.dataframe(df)
 
         if st.button("Generate PDF"):
-            pdf_buffer = generate_proforma_invoice(df)
+            pdf_buffer = generate_proforma_invoice(df, invoice_number)
             st.success("✅ PDF Generated Successfully!")
             st.download_button(
                 label="⬇️ Download Proforma Invoice",
                 data=pdf_buffer,
-                file_name="Proforma_Invoice.pdf",
+                file_name=f"Proforma_Invoice_{invoice_number.replace('/', '-')}.pdf",
                 mime="application/pdf",
             )
     except Exception as e:
