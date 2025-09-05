@@ -6,7 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 
-# ===== Flexible Preprocess Excel with Auto Column Mapping + Footer Cleanup =====
+# ===== Flexible Preprocess Excel with Auto Column Mapping + Strict Row Cleanup =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
@@ -58,7 +58,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
             df_columns[target_col] = None  # Column not found
 
     # Step 5: Select data rows (rows after header)
-    df = df_raw.iloc[header_row_idx + 1 :].copy()
+    df = df_raw.iloc[header_row_idx + 1:].copy()
     df.columns = headers
     df = df.reset_index(drop=True)
 
@@ -66,20 +66,24 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     rename_dict = {v: k for k, v in df_columns.items() if v is not None}
     df = df.rename(columns=rename_dict)
 
-    # ✅ Step 6.1: Drop rows without STYLE NO or with footer keywords
+    # ✅ Step 6.1: Drop rows without a valid STYLE NO
     if "STYLE NO" in df.columns:
-        df["STYLE NO"] = df["STYLE NO"].astype(str)
+        df["STYLE NO"] = df["STYLE NO"].astype(str).str.strip()
+
+        # Drop invalid values (nan, None, empty, float NaN)
+        df = df[~df["STYLE NO"].isin(["", "nan", "NaN", "None", "NONE"])]
+        df = df[~df["STYLE NO"].str.lower().eq("nan")]  # catches string "nan"
+        df = df[df["STYLE NO"].notna()]  # drops real NaN values
+
+        # Drop if contains footer words
         df = df[~df["STYLE NO"].str.contains("total|grand|remarks|note", case=False, na=False)]
-        df = df[df["STYLE NO"].notna()]
-        df = df[df["STYLE NO"].str.strip() != ""]
 
     # Step 7: Convert numeric fields
     df["QTY"] = pd.to_numeric(df["QTY"], errors="coerce").fillna(0).astype(int)
     df["UNIT PRICE"] = pd.to_numeric(df["UNIT PRICE"], errors="coerce").fillna(0.0)
 
-    # ✅ Step 7.1: Drop junk rows where Qty & Amount are zero and no Style
-    if "STYLE NO" in df.columns:
-        df = df[~((df["QTY"] == 0) & (df["UNIT PRICE"] == 0) & (df["STYLE NO"].str.strip() == ""))]
+    # ✅ Step 7.1: Drop junk rows where Qty & Unit Price are zero and Style missing
+    df = df[~((df["QTY"] == 0) & (df["UNIT PRICE"] == 0) & (df["STYLE NO"].str.strip() == ""))]
 
     # Step 8: Aggregate per unique style
     grouped = (
