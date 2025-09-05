@@ -10,6 +10,22 @@ import io
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
+    # Step 0: Extract metadata (Fabric Type)
+    fabric_type_value = ""
+    try:
+        meta_section = df_raw.head(10).astype(str)  # look at first 10 rows
+        for ridx, row in meta_section.iterrows():
+            for cidx, cell in enumerate(row):
+                if "texture" in str(cell).lower():
+                    # pick value from the next column in the same row
+                    if cidx + 1 < len(row):
+                        fabric_type_value = row[cidx + 1]
+                    break
+            if fabric_type_value:
+                break
+    except Exception:
+        fabric_type_value = ""
+
     header_row_idx = None
     stacked_header_idx = None
 
@@ -96,8 +112,8 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
     # Step 10: Add static PDF columns
-    grouped["FABRIC TYPE"] = ""
-    grouped["HS CODE"] = ""
+    grouped["FABRIC TYPE"] = fabric_type_value if fabric_type_value else ""
+    grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
 
     # Step 11: Reorder columns for PDF
