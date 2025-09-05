@@ -24,11 +24,11 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     if header_row_idx is None:
         raise ValueError("Could not detect header row with 'Style' column!")
 
-    # Step 2: Combine stacked headers if present
+    # Step 2: Combine stacked headers safely (convert everything to string)
     if stacked_header_idx >= 0:
-        headers = df_raw.iloc[stacked_header_idx].fillna('') + ' ' + df_raw.iloc[header_row_idx].fillna('')
+        headers = df_raw.iloc[stacked_header_idx].astype(str).fillna('') + ' ' + df_raw.iloc[header_row_idx].astype(str).fillna('')
     else:
-        headers = df_raw.iloc[header_row_idx].fillna('')
+        headers = df_raw.iloc[header_row_idx].astype(str).fillna('')
 
     headers = headers.str.strip()
 
