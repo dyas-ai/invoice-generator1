@@ -11,10 +11,21 @@ from datetime import datetime
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
+    # === Step A: Extract fabric type (Texture row) ===
+    fabric_type_value = "Knitted"  # fallback
+    for i in range(min(30, len(df_raw))):  # scan first 30 rows
+        row = df_raw.iloc[i].astype(str)
+        if row.str.contains("Texture", case=False, na=False).any():
+            idx = row[row.str.contains("Texture", case=False, na=False)].index[0]
+            if idx + 1 < len(row):
+                val = row[idx + 1]
+                if pd.notna(val) and str(val).strip() != "":
+                    fabric_type_value = str(val).strip()
+            break
+
+    # === Step B: Detect header row (row containing "Style") ===
     header_row_idx = None
     stacked_header_idx = None
-
-    # Detect header row (row containing "Style")
     for i in range(min(max_rows, len(df_raw))):
         row = df_raw.iloc[i].astype(str)
         if row.str.contains("Style", case=False, na=False).any():
@@ -36,7 +47,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
         headers = df_raw.iloc[header_row_idx].astype(str).fillna('')
     headers = headers.str.strip()
 
-    # Stronger mapping (cover typos & variations)
+    # Column mapping
     col_map = {
         "STYLE NO": ["Style", "Style No", "Item Style"],
         "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc", "Desc"],
@@ -57,22 +68,19 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
             st.warning(f"⚠️ Could not find column for **{target_col}** in Excel")
             df_columns[target_col] = None
 
-    # Select data rows
+    # Select rows
     df = df_raw.iloc[header_row_idx + 1:].copy()
     df.columns = headers
     df = df.reset_index(drop=True)
 
-    # Rename columns
     rename_dict = {v: k for k, v in df_columns.items() if v is not None}
     df = df.rename(columns=rename_dict)
 
-    # Drop junk rows
     if "STYLE NO" in df.columns:
         df["STYLE NO"] = df["STYLE NO"].astype(str).str.strip()
         df = df[~df["STYLE NO"].isin(["", "nan", "NaN", "None", "NONE"])]
         df = df[~df["STYLE NO"].str.contains("total|grand|remarks|note", case=False, na=False)]
 
-    # Convert numerics
     if "QTY" in df.columns:
         df["QTY"] = pd.to_numeric(df["QTY"], errors="coerce").fillna(0).astype(int)
     else:
@@ -96,8 +104,8 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     # Compute amount
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Static columns
-    grouped["FABRIC TYPE"] = "Knitted"  # default fallback
+    # Assign defaults
+    grouped["FABRIC TYPE"] = fabric_type_value
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
 
@@ -203,8 +211,8 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        st.write("### Preview of Processed Data")
-        st.dataframe(df)
+        st.write("### Preview & Edit Data")
+        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
 
         st.write("### ✍️ Enter Invoice Details")
         with st.form("invoice_form"):
@@ -215,6 +223,7 @@ if uploaded_file is not None:
             buyer_name = st.text_input("Buyer Name", "LANDMARK GROUP")
             brand_name = st.text_input("Brand Name", "Juniors")
             payment_term = st.text_input("Payment Term", "T/T")
+
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
@@ -227,7 +236,7 @@ if uploaded_file is not None:
                 "brand_name": brand_name,
                 "payment_term": payment_term,
             }
-            pdf_buffer = generate_proforma_invoice(df, form_data)
+            pdf_buffer = generate_proforma_invoice(edited_df, form_data)
             st.success("✅ PDF Generated Successfully!")
             st.download_button(
                 label="⬇️ Download Proforma Invoice",
