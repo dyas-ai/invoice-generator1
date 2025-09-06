@@ -3,10 +3,12 @@ import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from reportlab.lib.units import inch
 import io
 
-# ===== Preprocessing Function =====
+# ===== Preprocessing Function (keeping your existing one) =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
@@ -24,9 +26,9 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     if stacked_header_idx >= 0:
         headers = (
-            df_raw.iloc[stacked_header_idx].astype(str).fillna("") +
-            " " +
-            df_raw.iloc[header_row_idx].astype(str).fillna("")
+            df_raw.iloc[stacked_header_idx].astype(str).fillna("")
+            + " "
+            + df_raw.iloc[header_row_idx].astype(str).fillna("")
         )
     else:
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
@@ -75,7 +77,8 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
 
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
-    grouped["FABRIC TYPE"] = "Knitted"   # default fabric type
+
+    grouped["FABRIC TYPE"] = "Knitted"   # default fabric type (can be dynamic later)
     grouped["HS CODE"] = "61112000"      # static HS code
     grouped["COUNTRY OF ORIGIN"] = "India"
 
@@ -94,125 +97,256 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     ]
     return grouped
 
-# ===== PDF Generator =====
+# ===== Updated PDF Generator with Proper Boxed Layout =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
-    styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            topMargin=20, bottomMargin=20, leftMargin=20, rightMargin=20)
+                            topMargin=36, bottomMargin=36, leftMargin=36, rightMargin=36)
     elements = []
 
-    elements.append(Paragraph("<b>PROFORMA INVOICE</b>", styles["Title"]))
-    elements.append(Spacer(1, 6))
-
-    # Supplier + PI Info
-    supplier_info = [
-        Paragraph("<b>Supplier Name:</b>", styles["Normal"]),
-        Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", styles["Normal"]),
-        Paragraph("Address: 6, Picaso Bithi, Kolkata - 700017", styles["Normal"]),
-        Paragraph("Phone: 9874173373", styles["Normal"]),
-        Paragraph("Fax: N.A.", styles["Normal"]),
-    ]
-    pi_info = [
-        Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", styles["Normal"]),
-        Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", styles["Normal"]),
-        Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", styles["Normal"]),
-        Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", styles["Normal"]),
-    ]
-    block1 = Table([[supplier_info, pi_info]], colWidths=[270, 270])
-    block1.setStyle(TableStyle([("GRID", (0,0), (-1,-1), 0.75, colors.black),
-                                ("VALIGN", (0,0), (-1,-1), "TOP")]))
-    elements.append(block1)
-
-    # Consignee + Bank
-    consignee_info = [
-        Paragraph("<b>Consignee:</b>", styles["Normal"]),
-        Paragraph(form_data['consignee_name'], styles["Normal"]),
-        Paragraph(form_data['consignee_address'], styles["Normal"]),
-        Paragraph(form_data['consignee_tel'], styles["Normal"]),
-    ]
-    bank_info = [
-        Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", styles["Normal"]),
-        Paragraph("<b>Bank Details (Including Swift/IBAN)</b>", styles["Normal"]),
-        Paragraph(f"<b>Beneficiary:</b> {form_data['bank_beneficiary']}", styles["Normal"]),
-        Paragraph(f"<b>Account No:</b> {form_data['bank_account']}", styles["Normal"]),
-        Paragraph(f"<b>BANK'S NAME:</b> {form_data['bank_name']}", styles["Normal"]),
-        Paragraph(f"<b>BANK ADDRESS:</b> {form_data['bank_address']}", styles["Normal"]),
-        Paragraph(f"<b>SWIFT CODE:</b> {form_data['bank_swift']}", styles["Normal"]),
-        Paragraph(f"<b>BANK CODE:</b> {form_data['bank_code']}", styles["Normal"]),
-    ]
-    block2 = Table([[consignee_info, bank_info]], colWidths=[270, 270])
-    block2.setStyle(TableStyle([("GRID", (0,0), (-1,-1), 0.75, colors.black),
-                                ("VALIGN", (0,0), (-1,-1), "TOP")]))
-    elements.append(block2)
-
-    # Shipment + Remarks
-    shipment_info = [
-        Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", styles["Normal"]),
-        Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", styles["Normal"]),
-        Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", styles["Normal"]),
-    ]
-    remarks_info = [
-        Paragraph(f"<b>L/C Advising Bank:</b> (If applicable)", styles["Normal"]),
-        Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", styles["Normal"]),
-    ]
-    block3 = Table([[shipment_info, remarks_info]], colWidths=[270, 270])
-    block3.setStyle(TableStyle([("GRID", (0,0), (-1,-1), 0.75, colors.black),
-                                ("VALIGN", (0,0), (-1,-1), "TOP")]))
-    elements.append(block3)
-
-    # Goods Description
-    block4 = Table([[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", styles["Normal"])]],
-                   colWidths=[540])
-    block4.setStyle(TableStyle([("GRID", (0,0), (-1,-1), 0.75, colors.black)]))
-    elements.append(block4)
-    elements.append(Spacer(1, 12))
-
-    # Line Items Table
-    headers = df.columns.tolist()
-    table_data = [headers]
-    for _, row in df.iterrows():
-        table_data.append([
-            row["STYLE NO"], row["ITEM DESCRIPTION"], row["FABRIC TYPE"],
-            row["HS CODE"], row["COMPOSITION"], row["COUNTRY OF ORIGIN"],
-            int(row["QTY"]), f"{row['UNIT PRICE']:.2f}", f"{row['AMOUNT']:.2f}"
-        ])
-    table = Table(table_data, repeatRows=1, colWidths=[65, 110, 70, 70, 80, 80, 40, 50, 60])
-    table.setStyle(TableStyle([
-        ("GRID", (0,0), (-1,-1), 0.5, colors.black),
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("ALIGN", (0,0), (-1,-1), "CENTER"),
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 7),
-    ]))
-    elements.append(table)
-
-    # Totals
-    total_qty = df["QTY"].sum()
-    total_amount = df["AMOUNT"].sum()
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph(f"<b>Total Quantity:</b> {total_qty}", styles["Normal"]))
-    elements.append(Paragraph(f"<b>TOTAL USD {total_amount:,.2f}</b>", styles["Normal"]))
-
-    # Currency at bottom-right
-    currency_table = Table(
-        [[Paragraph("<b>CURRENCY: USD</b>", styles["Normal"])]],
-        colWidths=[540]
+    # Create custom styles
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Normal'],
+        fontSize=14,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        spaceAfter=12
     )
-    currency_table.setStyle(TableStyle([
-        ("ALIGN", (0,0), (-1,-1), "RIGHT"),
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 9),
-        ("TOPPADDING", (0,0), (-1,-1), 15),
-    ]))
-    elements.append(currency_table)
+    
+    # Header style for section labels
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        alignment=TA_LEFT
+    )
+    
+    # Normal text style
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        alignment=TA_LEFT
+    )
 
+    # Title
+    elements.append(Paragraph("PROFORMA INVOICE", title_style))
+    elements.append(Spacer(1, 12))
+
+    # === ROW 1: Supplier Info + PI Details ===
+    supplier_data = [
+        [Paragraph("<b>Supplier Name:</b>", header_style), 
+         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
+        ["", Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
+        [Paragraph(f"<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
+         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
+        [Paragraph(f"<b>Phone:</b> 9817473373", normal_style),
+         Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
+        [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
+    ]
+    
+    supplier_table = Table(supplier_data, colWidths=[3.5*inch, 3.5*inch])
+    supplier_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    elements.append(supplier_table)
+
+    # === ROW 2: Consignee + Payment/Bank Details ===
+    consignee_data = [
+        [Paragraph("<b>Consignee:</b>", header_style),
+         Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
+        [Paragraph(form_data['consignee_name'], normal_style), ""],
+        [Paragraph(form_data['consignee_address'], normal_style),
+         Paragraph("<b>Bank Details (Including Swift/IBAN)</b>", header_style)],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""],
+        ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
+        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
+        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
+        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
+        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
+        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
+    ]
+    
+    consignee_table = Table(consignee_data, colWidths=[3.5*inch, 3.5*inch])
+    consignee_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    elements.append(consignee_table)
+
+    # === ROW 3: Shipping Details + L/C Bank ===
+    shipping_data = [
+        [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
+         Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
+        ["", ""],
+        [Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style), ""]
+    ]
+    
+    shipping_table = Table(shipping_data, colWidths=[3.5*inch, 3.5*inch])
+    shipping_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    elements.append(shipping_table)
+
+    # === ROW 4: Description of Goods + Currency ===
+    goods_data = [
+        [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
+         Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('RightAlign', parent=normal_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
+    ]
+    
+    goods_table = Table(goods_data, colWidths=[5.25*inch, 1.75*inch])
+    goods_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    elements.append(goods_table)
+
+    elements.append(Spacer(1, 12))
+
+    # === PRODUCT DETAILS TABLE ===
+    # Table headers
+    table_headers = [
+        "STYLE NO.",
+        "ITEM DESCRIPTION", 
+        "FABRIC TYPE\nKNITTED /\nWOVEN",
+        "H.S NO\n(8digit)",
+        "COMPOSITION OF\nMATERIAL",
+        "COUNTRY\nOF\nORIGIN",
+        "QTY",
+        "UNIT\nPRICE\nFOB",
+        "AMOUNT"
+    ]
+    
+    # Prepare table data
+    table_data = [table_headers]
+    
+    total_qty = 0
+    total_amount = 0.0
+    
+    for _, row in df.iterrows():
+        qty = int(row["QTY"])
+        unit_price = float(row["UNIT PRICE"])
+        amount = float(row["AMOUNT"])
+        
+        total_qty += qty
+        total_amount += amount
+        
+        table_data.append([
+            str(row["STYLE NO"]),
+            str(row["ITEM DESCRIPTION"]),
+            str(row["FABRIC TYPE"]),
+            str(row["HS CODE"]),
+            str(row["COMPOSITION"]),
+            str(row["COUNTRY OF ORIGIN"]),
+            f"{qty:,}",
+            f"{unit_price:.2f}",
+            f"{amount:.2f}"
+        ])
+    
+    # Add empty rows to match reference format
+    for _ in range(10 - len(df)):  # Add empty rows up to 10 total rows
+        table_data.append(["", "", "", "", "", "", "", "", ""])
+    
+    # Add total row
+    table_data.append([
+        "", "", "", "", "", "TOTAL", f"{total_qty:,}", "", f"USD {total_amount:.2f}"
+    ])
+
+    # Create the main product table
+    product_table = Table(table_data, 
+                         colWidths=[0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch])
+    
+    product_table.setStyle(TableStyle([
+        # Header row styling
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 8),
+        ('ALIGN', (0,0), (-1,0), 'CENTER'),
+        ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
+        
+        # Data rows styling
+        ('FONTSIZE', (0,1), (-1,-2), 8),
+        ('ALIGN', (0,1), (-1,-2), 'CENTER'),
+        ('VALIGN', (0,1), (-1,-2), 'MIDDLE'),
+        
+        # Total row styling
+        ('FONTSIZE', (0,-1), (-1,-1), 9),
+        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('ALIGN', (0,-1), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,-1), (-1,-1), 'MIDDLE'),
+        
+        # Grid lines
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        
+        # Padding
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('RIGHTPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    
+    elements.append(product_table)
+    
+    # Add total in words
+    elements.append(Spacer(1, 12))
+    total_words = f"TOTAL US DOLLAR {total_amount:,.2f} DOLLARS"
+    elements.append(Paragraph(total_words, ParagraphStyle('TotalWords', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10)))
+    
+    elements.append(Spacer(1, 24))
+    
+    # Signature section
+    signature_data = [
+        ["Signed by …………………….(Affix Stamp here)", "for RNA Resources Group Ltd-Landmark (Babyshop)"],
+        ["", ""],
+        ["Terms & Conditions (If Any)", ""]
+    ]
+    
+    signature_table = Table(signature_data, colWidths=[3.5*inch, 3.5*inch])
+    signature_table.setStyle(TableStyle([
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (0,0), (0,0), 'LEFT'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(signature_table)
+
+    # Build PDF
     doc.build(elements)
     buffer.seek(0)
     return buffer
 
-# ===== Streamlit App =====
+# ===== Streamlit App (keeping your existing interface) =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
 st.title("📄 Proforma Invoice Generator")
 
@@ -248,39 +382,36 @@ if uploaded_file is not None:
             goods_desc = st.text_input("Description of goods", "Value Packs")
 
             submitted = st.form_submit_button("Generate PDF")
+            if submitted:
+                form_data = {
+                    "pi_number": pi_number,
+                    "order_ref": order_ref,
+                    "buyer_name": buyer_name,
+                    "brand_name": brand_name,
+                    "consignee_name": consignee_name,
+                    "consignee_address": consignee_address,
+                    "consignee_tel": consignee_tel,
+                    "payment_term": payment_term,
+                    "bank_beneficiary": bank_beneficiary,
+                    "bank_account": bank_account,
+                    "bank_name": bank_name,
+                    "bank_address": bank_address,
+                    "bank_swift": bank_swift,
+                    "bank_code": bank_code,
+                    "loading_country": loading_country,
+                    "port_loading": port_loading,
+                    "shipment_date": shipment_date,
+                    "remarks": remarks,
+                    "goods_desc": goods_desc,
+                }
 
-        # ==== Download button outside form ====
-        if submitted:
-            form_data = {
-                "pi_number": pi_number,
-                "order_ref": order_ref,
-                "buyer_name": buyer_name,
-                "brand_name": brand_name,
-                "consignee_name": consignee_name,
-                "consignee_address": consignee_address,
-                "consignee_tel": consignee_tel,
-                "payment_term": payment_term,
-                "bank_beneficiary": bank_beneficiary,
-                "bank_account": bank_account,
-                "bank_name": bank_name,
-                "bank_address": bank_address,
-                "bank_swift": bank_swift,
-                "bank_code": bank_code,
-                "loading_country": loading_country,
-                "port_loading": port_loading,
-                "shipment_date": shipment_date,
-                "remarks": remarks,
-                "goods_desc": goods_desc,
-            }
-
-            pdf_buffer = generate_proforma_invoice(df, form_data)
-            st.success("✅ PDF Generated Successfully!")
-            st.download_button(
-                label="⬇️ Download Proforma Invoice",
-                data=pdf_buffer,
-                file_name="Proforma_Invoice.pdf",
-                mime="application/pdf",
-            )
-
+                pdf_buffer = generate_proforma_invoice(df, form_data)
+                st.success("✅ PDF Generated Successfully!")
+                st.download_button(
+                    label="⬇️ Download Proforma Invoice",
+                    data=pdf_buffer,
+                    file_name="Proforma_Invoice.pdf",
+                    mime="application/pdf",
+                )
     except Exception as e:
         st.error(f"❌ Error: {e}")
