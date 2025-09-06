@@ -42,7 +42,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
         "UNIT PRICE": ["Fob$", "USD Fob$", "Fob USD", "Fob $"],
         "QTY": ["Total Qty", "Quantity", "Qty"],
         "AMOUNT": ["Total Value", "Amount", "Value"],
-        "FABRIC TYPE": ["Texture", "Fabric", "Knitted", "Woven"]
     }
 
     df_columns = {}
@@ -73,13 +72,29 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df = df[~((df["QTY"] == 0) & (df["UNIT PRICE"] == 0) & (df["STYLE NO"].str.strip() == ""))]
 
     grouped = (
-        df.groupby(["STYLE NO", "ITEM DESCRIPTION", "COMPOSITION", "UNIT PRICE", "FABRIC TYPE"], dropna=False)
+        df.groupby(["STYLE NO", "ITEM DESCRIPTION", "COMPOSITION", "UNIT PRICE"], dropna=False)
         .agg({"QTY": "sum"})
         .reset_index()
     )
 
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
+    # ✅ Extract Fabric Type (Texture)
+    fabric_type = ""
+    try:
+        texture_row = df_raw.iloc[:max_rows].astype(str)
+        mask = texture_row.apply(lambda row: row.str.contains("Texture", case=False, na=False)).any(axis=1)
+        if mask.any():
+            row_idx = mask.idxmax()
+            texture_label_col = texture_row.iloc[row_idx].str.contains("Texture", case=False, na=False)
+            texture_value_col = texture_label_col[texture_label_col].index[0] + 1
+            fabric_type = str(df_raw.iloc[row_idx, texture_value_col])
+    except Exception:
+        fabric_type = ""
+
+    grouped["FABRIC TYPE"] = fabric_type if fabric_type else ""
+
+    # ✅ Add HS Code and Country
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
 
@@ -177,7 +192,6 @@ def generate_proforma_invoice(df, details):
     elements.append(Paragraph(f"TOTAL QTY: {total_qty}", bold))
     elements.append(Paragraph(f"TOTAL USD {total_amount:,.2f}", bold))
 
-    # Amount in words - bold + underline
     amount_words = num2words(total_amount, to="currency", lang="en").upper()
     elements.append(Paragraph(f"Amount in words: {amount_words}", underline))
     elements.append(Spacer(1, 12))
@@ -212,7 +226,6 @@ if uploaded_file is not None:
         st.write("### Preview of Processed Data")
         st.dataframe(df)
 
-        # Invoice Details Form
         with st.form("invoice_form"):
             st.subheader("Invoice Details")
             pi_no = st.text_input("Proforma Invoice No.", "SAR/LG/0148")
