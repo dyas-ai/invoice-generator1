@@ -346,7 +346,7 @@ def generate_proforma_invoice(df, form_data):
     buffer.seek(0)
     return buffer
 
-# ===== Streamlit App (keeping your existing interface) =====
+# ===== Streamlit App (Fixed version) =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
 st.title("📄 Proforma Invoice Generator")
 
@@ -382,36 +382,38 @@ if uploaded_file is not None:
             goods_desc = st.text_input("Description of goods", "Value Packs")
 
             submitted = st.form_submit_button("Generate PDF")
-            if submitted:
-                form_data = {
-                    "pi_number": pi_number,
-                    "order_ref": order_ref,
-                    "buyer_name": buyer_name,
-                    "brand_name": brand_name,
-                    "consignee_name": consignee_name,
-                    "consignee_address": consignee_address,
-                    "consignee_tel": consignee_tel,
-                    "payment_term": payment_term,
-                    "bank_beneficiary": bank_beneficiary,
-                    "bank_account": bank_account,
-                    "bank_name": bank_name,
-                    "bank_address": bank_address,
-                    "bank_swift": bank_swift,
-                    "bank_code": bank_code,
-                    "loading_country": loading_country,
-                    "port_loading": port_loading,
-                    "shipment_date": shipment_date,
-                    "remarks": remarks,
-                    "goods_desc": goods_desc,
-                }
 
-                pdf_buffer = generate_proforma_invoice(df, form_data)
-                st.success("✅ PDF Generated Successfully!")
-                st.download_button(
-                    label="⬇️ Download Proforma Invoice",
-                    data=pdf_buffer,
-                    file_name="Proforma_Invoice.pdf",
-                    mime="application/pdf",
-                )
+        # Handle PDF generation OUTSIDE the form
+        if submitted:
+            form_data = {
+                "pi_number": pi_number,
+                "order_ref": order_ref,
+                "buyer_name": buyer_name,
+                "brand_name": brand_name,
+                "consignee_name": consignee_name,
+                "consignee_address": consignee_address,
+                "consignee_tel": consignee_tel,
+                "payment_term": payment_term,
+                "bank_beneficiary": bank_beneficiary,
+                "bank_account": bank_account,
+                "bank_name": bank_name,
+                "bank_address": bank_address,
+                "bank_swift": bank_swift,
+                "bank_code": bank_code,
+                "loading_country": loading_country,
+                "port_loading": port_loading,
+                "shipment_date": shipment_date,
+                "remarks": remarks,
+                "goods_desc": goods_desc,
+            }
+
+            pdf_buffer = generate_proforma_invoice(df, form_data)
+            st.success("✅ PDF Generated Successfully!")
+            st.download_button(
+                label="⬇️ Download Proforma Invoice",
+                data=pdf_buffer,
+                file_name="Proforma_Invoice.pdf",
+                mime="application/pdf",
+            )
     except Exception as e:
         st.error(f"❌ Error: {e}")
