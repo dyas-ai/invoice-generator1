@@ -273,9 +273,7 @@ def generate_proforma_invoice(df, form_data):
             f"{amount:.2f}"
         ])
     
-    # Add empty rows to match reference format
-    for _ in range(10 - len(df)):  # Add empty rows up to 10 total rows
-        table_data.append(["", "", "", "", "", "", "", "", ""])
+    # Remove the empty rows - they are unnecessary
     
     # Add total row
     table_data.append([
