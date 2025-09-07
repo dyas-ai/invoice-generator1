@@ -133,24 +133,21 @@ def generate_proforma_invoice(df, form_data):
                                   spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
-    supplier_style = ParagraphStyle('Supplier', parent=header_style, leading=8)
+    supplier_style = ParagraphStyle('Supplier', parent=normal_style, leading=8)  # reduced vertical spacing
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
+    # width setup
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
                           1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier section
+    # Supplier section (fixed PI/Reference)
     supplier_data = [
         [
             Paragraph("<b>Supplier Name:</b>", header_style),
-            Paragraph(
-                f"<b>No. & date of PI:</b> {form_data['pi_number']}<br/>"
-                f"<b>Landmark order Reference:</b> {form_data['order_ref']}",
-                header_style
-            )
+            Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)
         ],
         [
             Paragraph(
@@ -161,23 +158,17 @@ def generate_proforma_invoice(df, form_data):
                 supplier_style
             ),
             Paragraph(
+                f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/>"
                 f"<b>Buyer Name:</b> {form_data['buyer_name']}<br/>"
                 f"<b>Brand Name:</b> {form_data['brand_name']}",
                 normal_style
             )
         ]
     ]
-    elements.append(
-        Table(
-            supplier_data,
-            colWidths=header_col_widths,
-            style=[
-                ('BOX',(0,0),(-1,-1),1,colors.black),
-                ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                ('LINEBELOW',(1,0),(1,0),1,colors.black)
-            ]
-        )
-    )
+    elements.append(Table(supplier_data, colWidths=header_col_widths,
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
 
     # Consignee section
     consignee_data = [
@@ -225,7 +216,8 @@ def generate_proforma_invoice(df, form_data):
 
     total_qty,total_amount = 0,0.0
     for _,row in df.iterrows():
-        qty = int(row.get("QTY",0) or 0); price = float(row.get("UNIT PRICE",0.0) or 0.0)
+        qty = int(row.get("QTY",0) or 0)
+        price = float(row.get("UNIT PRICE",0.0) or 0.0)
         amt = float(row.get("AMOUNT", qty*price) or (qty*price))
         total_qty += qty; total_amount += amt
         table_data.append([str(row.get("STYLE NO","")),str(row.get("ITEM DESCRIPTION","")),
