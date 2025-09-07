@@ -116,6 +116,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped = grouped[final_cols].reset_index(drop=True)
     return grouped
 
+
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
@@ -125,6 +126,7 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
+    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
@@ -145,8 +147,8 @@ def generate_proforma_invoice(df, form_data):
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('Small', parent=header_style, leading=8)),
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('Small', parent=normal_style, leading=7, alignment=TA_TOP))],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", normal_style),
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
@@ -173,23 +175,22 @@ def generate_proforma_invoice(df, form_data):
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('VALIGN',(0,0),(-1,-1),'TOP')]))
 
-    # Shipping section with reduced spacing
+    # Shipping section with reduced vertical gaps
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
-        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", ParagraphStyle('Small', parent=normal_style, leading=5)),
-         ""],
-        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", ParagraphStyle('Small', parent=normal_style, leading=5)),
-         ""],
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
         ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)]
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
+                                 ('BOTTOMPADDING',(1,1),(1,1),2),
+                                 ('BOTTOMPADDING',(1,2),(1,2),2)]))
 
     # Goods + Currency
-    total_table_width = sum(product_col_widths)
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
                    Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style,
                                                                     alignment=TA_RIGHT,
@@ -232,11 +233,11 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
-        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black),
-        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
-        ('SPAN',(0,-1),(5,-1)),
+        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black), # header underline
+        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black), # top of total row
+        ('SPAN',(0,-1),(5,-1)),  # merge first 6 cols
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
-        ('SPAN',(6,-1),(7,-1)),
+        ('SPAN',(6,-1),(7,-1)),  # merge qty + unit price cols
     ]))
     elements.append(product_table)
 
@@ -259,6 +260,7 @@ def generate_proforma_invoice(df, form_data):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
 
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
@@ -302,6 +304,7 @@ if uploaded_file is not None:
                          "remarks":remarks,"goods_desc":goods_desc}
             pdf_buffer = generate_proforma_invoice(df, form_data)
             st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download PDF", data=pdf_buffer, file_name="Proforma_Invoice.pdf", mime="application/pdf")
+            st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
+                               file_name="Proforma_Invoice.pdf", mime="application/pdf")
     except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error(f"❌ Error: {str(e)}")
