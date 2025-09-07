@@ -311,7 +311,7 @@ def generate_proforma_invoice(df, form_data):
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('LINEAFTER', (0, 0), (0, -1), 0.5, colors.black),
     ]))
     elements.append(signature_table)
 
