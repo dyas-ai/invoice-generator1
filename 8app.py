@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
@@ -116,7 +116,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped = grouped[final_cols].reset_index(drop=True)
     return grouped
 
-
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
@@ -153,7 +152,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
 
     # Consignee section
     consignee_data = [
@@ -172,10 +171,9 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Shipping section with reduced vertical gaps
+    # Shipping section
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -185,10 +183,7 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                 ('BOTTOMPADDING',(1,1),(1,1),2),
-                                 ('BOTTOMPADDING',(1,2),(1,2),2)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
     # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
@@ -233,34 +228,39 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
-        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black), # header underline
-        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black), # top of total row
-        ('SPAN',(0,-1),(5,-1)),  # merge first 6 cols
+        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
+        ('SPAN',(0,-1),(5,-1)),
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
-        ('SPAN',(6,-1),(7,-1)),  # merge qty + unit price cols
+        ('SPAN',(6,-1),(7,-1)),
     ]))
     elements.append(product_table)
 
     # Signature block
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
+    
+    # E-stamp image URL from GitHub
+    e_stamp_url = "https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png"
+    e_stamp_img = Image(e_stamp_url, width=2.0*inch, height=1.0*inch)
+    e_stamp_img.hAlign = 'LEFT'
+
     signature_data = [
         [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
                    ParagraphStyle('LeftBold', parent=styles['Normal'],
                                   fontName='Helvetica-Bold', fontSize=7,
                                   alignment=TA_LEFT)), ""],
+        [e_stamp_img, ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('VALIGN',(0,0),(-1,-1),'BOTTOM')])
+                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
     elements.append(signature_table)
 
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
 
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
@@ -307,4 +307,4 @@ if uploaded_file is not None:
             st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
                                file_name="Proforma_Invoice.pdf", mime="application/pdf")
     except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
+        st.error(f"❌ Error: {e}")
