@@ -123,6 +123,7 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
+    # Reduced font sizes by 2 points
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER,
                                  fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7, fontName='Helvetica-Bold', alignment=TA_LEFT)
@@ -201,7 +202,7 @@ def generate_proforma_invoice(df, form_data):
     product_table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.lightgrey),
         ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-        ('FONTSIZE',(0,0),(-1,0),6),
+        ('FONTSIZE',(0,0),(-1,-1),6),  # Reduced from 8 to 6
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
         ('BOX',(0,0),(-1,-1),1,colors.black),
@@ -220,11 +221,11 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Total in words
+    # Total in words - reduced font size
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
     elements.append(Paragraph(f"TOTAL US DOLLAR {total_words} DOLLARS",
                               ParagraphStyle('TotalWords', parent=styles['Normal'],
-                                             fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)))
+                                             fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)))  # Reduced from 9 to 7
 
     # Signature block
     signature_data = [
