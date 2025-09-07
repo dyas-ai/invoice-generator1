@@ -253,7 +253,7 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(goods_data, colWidths=[total_table_width * 0.75, total_table_width * 0.25],
                           style=[('BOX', (0, 0), (-1, -1), 1, colors.black),
-                                 ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                                 ('LINEBEFORE', (1, 0), (1, -1), 0.5, colors.black),
                                  ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
 
     # === Product table (using the exact same widths as defined above)
