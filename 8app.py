@@ -243,16 +243,15 @@ def generate_proforma_invoice(df, form_data):
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
     signature_data = [
         [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
-                   ParagraphStyle('CenterBold', parent=styles['Normal'],
+                   ParagraphStyle('LeftBold', parent=styles['Normal'],
                                   fontName='Helvetica-Bold', fontSize=7,
-                                  alignment=TA_CENTER)), ""],
+                                  alignment=TA_LEFT)), ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                    ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
     elements.append(signature_table)
 
