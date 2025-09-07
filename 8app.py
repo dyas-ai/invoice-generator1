@@ -116,6 +116,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped = grouped[final_cols].reset_index(drop=True)
     return grouped
 
+
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
@@ -125,7 +126,6 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
-    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
@@ -152,7 +152,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
+                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
 
     # Consignee section
     consignee_data = [
@@ -171,9 +171,10 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
 
-    # Shipping section
+    # Shipping section (reduced spacing)
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -183,7 +184,8 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
 
     # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
@@ -208,7 +210,6 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
-    # TOTAL row
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -228,6 +229,7 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
+        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black),
         ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
         ('SPAN',(0,-1),(5,-1)),
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
@@ -235,27 +237,31 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature block
+    # ===== Signature Section =====
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
-    
-    # E-stamp image URL from GitHub
+    total_words_str = f"USD {total_words} DOLLARS"
+    total_words_para = Paragraph(f"<b>TOTAL IN WORDS:</b> {total_words_str}",
+                                 ParagraphStyle('LeftBold', parent=styles['Normal'],
+                                                fontName='Helvetica-Bold', fontSize=7,
+                                                alignment=TA_LEFT, spaceAfter=4))
+    terms_para = Paragraph("Terms & Conditions (If Any)", normal_style)
+
     e_stamp_url = "https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png"
     e_stamp_img = Image(e_stamp_url, width=2.0*inch, height=1.0*inch)
     e_stamp_img.hAlign = 'LEFT'
 
+    sign_para = Paragraph("Signed by …………………….(Affix Stamp here)", normal_style)
+    sign_for_para = Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)
+
     signature_data = [
-        [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
-                   ParagraphStyle('LeftBold', parent=styles['Normal'],
-                                  fontName='Helvetica-Bold', fontSize=7,
-                                  alignment=TA_LEFT)), ""],
+        [total_words_para, ""],
+        [terms_para, ""],
         [e_stamp_img, ""],
-        [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
-        [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
-         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
+        [sign_para, sign_for_para]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
+                                   ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
     elements.append(signature_table)
 
     doc.build(elements)
@@ -303,8 +309,6 @@ if uploaded_file is not None:
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
             pdf_buffer = generate_proforma_invoice(df, form_data)
-            st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
-                               file_name="Proforma_Invoice.pdf", mime="application/pdf")
+            st.download_button("⬇️ Download PDF", pdf_buffer, file_name="Proforma_Invoice.pdf", mime="application/pdf")
     except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error(f"Error: {e}")
