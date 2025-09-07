@@ -126,18 +126,17 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
-    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=6)
+                                  spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
+    supplier_style = ParagraphStyle('Supplier', parent=header_style, leading=8)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # width setup
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
                           1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
@@ -145,15 +144,40 @@ def generate_proforma_invoice(df, form_data):
 
     # Supplier section
     supplier_data = [
-        [Paragraph("<b>Supplier Name:</b>", header_style),
-         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}<br/><b>Landmark order Reference:</b> {form_data['order_ref']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", header_style),
-         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
+        [
+            Paragraph("<b>Supplier Name:</b>", header_style),
+            Paragraph(
+                f"<b>No. & date of PI:</b> {form_data['pi_number']}<br/>"
+                f"<b>Landmark order Reference:</b> {form_data['order_ref']}",
+                header_style
+            )
+        ],
+        [
+            Paragraph(
+                "<b>SAR APPARELS INDIA PVT.LTD.</b><br/>"
+                "<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/>"
+                "<b>Phone:</b> 9817473373<br/>"
+                "<b>Fax:</b> N.A.",
+                supplier_style
+            ),
+            Paragraph(
+                f"<b>Buyer Name:</b> {form_data['buyer_name']}<br/>"
+                f"<b>Brand Name:</b> {form_data['brand_name']}",
+                normal_style
+            )
+        ]
     ]
-    elements.append(Table(supplier_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
+    elements.append(
+        Table(
+            supplier_data,
+            colWidths=header_col_widths,
+            style=[
+                ('BOX',(0,0),(-1,-1),1,colors.black),
+                ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                ('LINEBELOW',(1,0),(1,0),1,colors.black)
+            ]
+        )
+    )
 
     # Consignee section
     consignee_data = [
@@ -209,7 +233,6 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
-    # TOTAL row (merged) - FIXED: moved total_qty to position 6
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -229,11 +252,11 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
-        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black), # header underline
-        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black), # top of total row
-        ('SPAN',(0,-1),(5,-1)),  # merge first 6 cols
+        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black),
+        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
+        ('SPAN',(0,-1),(5,-1)),
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
-        ('SPAN',(6,-1),(7,-1)),  # merge qty + unit price cols
+        ('SPAN',(6,-1),(7,-1)),
     ]))
     elements.append(product_table)
 
@@ -266,7 +289,8 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        st.write("### Preview of Processed Data"); st.dataframe(df)
+        st.write("### Preview of Processed Data")
+        st.dataframe(df)
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
@@ -292,12 +316,14 @@ if uploaded_file is not None:
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
-            form_data = {"pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
-                         "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
-                         "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
-                         "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
-                         "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
-                         "remarks":remarks,"goods_desc":goods_desc}
+            form_data = {
+                "pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
+                "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
+                "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
+                "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
+                "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
+                "remarks":remarks,"goods_desc":goods_desc
+            }
             pdf_buffer = generate_proforma_invoice(df, form_data)
             st.success("✅ PDF Generated Successfully!")
             st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
