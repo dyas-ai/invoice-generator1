@@ -126,12 +126,14 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
-    # Reduced font sizes
+    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
-                                  fontName='Helvetica-Bold', alignment=TA_LEFT)
-    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT)
+                                  fontName='Helvetica-Bold', alignment=TA_LEFT, 
+                                  spaceBefore=0, spaceAfter=0, leading=8)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
+                                  spaceBefore=0, spaceAfter=0, leading=7)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
