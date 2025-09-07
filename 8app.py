@@ -197,7 +197,12 @@ def generate_proforma_invoice(df, form_data):
                                                                     alignment=TA_RIGHT,
                                                                     fontName='Helvetica-Bold'))]]
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
+                                 ('LEFTPADDING',(0,0),(-1,-1),3),
+                                 ('RIGHTPADDING',(0,0),(-1,-1),3),
+                                 ('TOPPADDING',(0,0),(-1,-1),1),
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]))
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
