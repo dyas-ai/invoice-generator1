@@ -141,19 +141,21 @@ def generate_proforma_invoice(df, form_data):
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier section
+    # Supplier section with top-aligned Landmark/Buyer/Brand
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('Small', parent=header_style, leading=8)),
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('TopAlign', parent=normal_style, alignment=TA_TOP))]
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
     ]
-    elements.append(Table(supplier_data, colWidths=header_col_widths,
-                          style=[
-                              ('BOX',(0,0),(-1,-1),1,colors.black),
-                              ('LINEBELOW',(0,0),(-1,0),1,colors.black),
-                              ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                          ]))
+    supplier_table = Table(supplier_data, colWidths=header_col_widths)
+    supplier_table.setStyle(TableStyle([
+        ('BOX',(0,0),(-1,-1),1,colors.black),
+        ('LINEBELOW',(0,0),(-1,0),1,colors.black),
+        ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+        ('VALIGN',(1,1),(1,1),'TOP')  # top align Landmark/Buyer/Brand
+    ]))
+    elements.append(supplier_table)
 
     # Consignee section
     consignee_data = [
@@ -209,6 +211,7 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
+    # TOTAL row
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -249,7 +252,7 @@ def generate_proforma_invoice(df, form_data):
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
+                                   ('VALIGN',(0,0),(-1,-1),'BOTTOM')])
     elements.append(signature_table)
 
     doc.build(elements)
@@ -264,8 +267,7 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        st.write("### Preview of Processed Data")
-        st.dataframe(df)
+        st.write("### Preview of Processed Data"); st.dataframe(df)
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
@@ -299,11 +301,7 @@ if uploaded_file is not None:
                          "remarks":remarks,"goods_desc":goods_desc}
             pdf_buffer = generate_proforma_invoice(df, form_data)
             st.success("✅ PDF Generated Successfully!")
-            st.download_button(
-                label="⬇️ Download Proforma Invoice",
-                data=pdf_buffer,
-                file_name="Proforma_Invoice.pdf",
-                mime="application/pdf"
-            )
+            st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
+                               file_name="Proforma_Invoice.pdf", mime="application/pdf")
     except Exception as e:
         st.error(f"❌ Error: {e}")
