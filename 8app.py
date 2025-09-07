@@ -12,8 +12,6 @@ from num2words import num2words
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
-
-    # detect header row
     header_row_idx = None
     stacked_header_idx = None
     for i in range(min(max_rows, len(df_raw))):
@@ -25,7 +23,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     if header_row_idx is None:
         raise ValueError("Could not detect header row with 'Style' column!")
 
-    # combine stacked headers
     if stacked_header_idx >= 0:
         headers = (
             df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " +
@@ -35,7 +32,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
     headers = headers.str.strip().astype(str)
 
-    # column mapping
     col_map = {
         "STYLE NO": ["Style", "Style No", "Item Style", "STYLE"],
         "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc", "DESC"],
@@ -58,7 +54,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
                 break
         df_columns[target_col] = found
 
-    # build dataframe
     df = df_raw.iloc[header_row_idx + 1:].copy()
     df.columns = headers
     df = df.reset_index(drop=True)
@@ -101,7 +96,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # static extras
     grouped["FABRIC TYPE"] = "Knitted"
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
@@ -128,34 +122,31 @@ def generate_proforma_invoice(df, form_data):
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
-                                  fontName='Helvetica-Bold', alignment=TA_LEFT,
+                                  fontName='Helvetica-Bold', alignment=TA_LEFT, 
                                   spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # width setup
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
                           1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier section with top-aligned Landmark/Buyer/Brand
+    # Supplier section (top-aligned)
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
-         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
+         Paragraph(f"<b>No. & Date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('Small', parent=header_style, leading=8)),
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('Small', parent=normal_style, leading=8))]
     ]
-    supplier_table = Table(supplier_data, colWidths=header_col_widths)
-    supplier_table.setStyle(TableStyle([
-        ('BOX',(0,0),(-1,-1),1,colors.black),
-        ('LINEBELOW',(0,0),(-1,0),1,colors.black),
-        ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-        ('VALIGN',(1,1),(1,1),'TOP')  # top align Landmark/Buyer/Brand
-    ]))
-    elements.append(supplier_table)
+    elements.append(Table(supplier_data, colWidths=header_col_widths,
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),2),
+                                 ('TOPPADDING',(0,0),(-1,-1),2)]))
 
     # Consignee section
     consignee_data = [
@@ -174,19 +165,28 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),2),
+                                 ('TOPPADDING',(0,0),(-1,-1),2)]))
 
-    # Shipping section
+    # Shipping section with reduced vertical spacing
     shipping_data = [
-        [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
-         Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
-        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
-        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
-        ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)]
+        [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", ParagraphStyle('Small', parent=normal_style, leading=7)),
+         Paragraph("<b>L/C Advising Bank:</b> (If applicable)", ParagraphStyle('Small', parent=normal_style, leading=7))],
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", ParagraphStyle('Small', parent=normal_style, leading=7)), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", ParagraphStyle('Small', parent=normal_style, leading=7)), ""],
+        ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", ParagraphStyle('Small', parent=normal_style, leading=7))]
     ]
-    elements.append(Table(shipping_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+    shipping_table = Table(shipping_data, colWidths=header_col_widths)
+    shipping_table.setStyle(TableStyle([
+        ('BOX',(0,0),(-1,-1),1,colors.black),
+        ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+        ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('BOTTOMPADDING',(0,0),(-1,-1),2),
+        ('TOPPADDING',(0,0),(-1,-1),2)
+    ]))
+    elements.append(shipping_table)
 
     # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
@@ -200,7 +200,6 @@ def generate_proforma_invoice(df, form_data):
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
                "COMPOSITION OF\nMATERIAL","COUNTRY\nOF\nORIGIN","QTY","UNIT\nPRICE\nFOB","AMOUNT"]
     table_data = [headers]
-
     total_qty,total_amount = 0,0.0
     for _,row in df.iterrows():
         qty = int(row.get("QTY",0) or 0); price = float(row.get("UNIT PRICE",0.0) or 0.0)
@@ -212,9 +211,7 @@ def generate_proforma_invoice(df, form_data):
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
     # TOTAL row
-    table_data.append(
-        ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
-    )
+    table_data.append(["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"])
 
     product_table = Table(table_data,colWidths=product_col_widths, repeatRows=1)
     product_table.setStyle(TableStyle([
