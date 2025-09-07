@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
@@ -14,7 +14,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     header_row_idx = None
     stacked_header_idx = None
-
     for i in range(min(max_rows, len(df_raw))):
         row = df_raw.iloc[i].astype(str)
         if row.str.contains("Style", case=False, na=False).any():
@@ -36,7 +35,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     col_map = {
         "STYLE NO": ["Style", "Style No", "Item Style"],
-        "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc"],
+        "ITEM DESCRIPTION": ["Description", "Item Description", "Item Desc"],
         "COMPOSITION": ["Composition", "Fabric Composition"],
         "UNIT PRICE": ["Fob$", "USD Fob$", "Fob USD", "Fob $"],
         "QTY": ["Total Qty", "Quantity", "Qty"],
@@ -77,27 +76,19 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
 
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
-
-    grouped["FABRIC TYPE"] = "Knitted"   # default fabric type (can be dynamic later)
-    grouped["HS CODE"] = "61112000"      # static HS code
+    grouped["FABRIC TYPE"] = "Knitted"
+    grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
 
     grouped = grouped[
         [
-            "STYLE NO",
-            "ITEM DESCRIPTION",
-            "FABRIC TYPE",
-            "HS CODE",
-            "COMPOSITION",
-            "COUNTRY OF ORIGIN",
-            "QTY",
-            "UNIT PRICE",
-            "AMOUNT",
+            "STYLE NO", "ITEM DESCRIPTION", "FABRIC TYPE", "HS CODE",
+            "COMPOSITION", "COUNTRY OF ORIGIN", "QTY", "UNIT PRICE", "AMOUNT",
         ]
     ]
     return grouped
 
-# ===== PDF Generator with Fixed Alignment =====
+# ===== PDF Generator with Alignment Fix =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -115,28 +106,26 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # fixed width across all tables
     total_width = 7.0 * inch
     col_widths = [total_width/2, total_width/2]
 
-    # === Supplier + PI Info ===
+    # Supplier + PI Info
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
         ["", Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
-        [Paragraph(f"<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
+        [Paragraph("<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
          Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
-        [Paragraph(f"<b>Phone:</b> 9817473373", normal_style),
+        [Paragraph("<b>Phone:</b> 9817473373", normal_style),
          Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
         [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
     ]
     elements.append(Table(supplier_data, colWidths=col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('GRID',(0,0),(-1,-1),0.5,colors.black)]))
 
-    # === Consignee + Payment/Bank ===
+    # Consignee + Payment
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
@@ -153,10 +142,9 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(consignee_data, colWidths=col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('GRID',(0,0),(-1,-1),0.5,colors.black)]))
 
-    # === Shipping + Remarks ===
+    # Shipping + Remarks
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -166,10 +154,9 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(shipping_data, colWidths=col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP')]))
+                                 ('GRID',(0,0),(-1,-1),0.5,colors.black)]))
 
-    # === Goods + Currency ===
+    # Goods + Currency
     goods_data = [
         [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
          Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('RightAlign',
@@ -177,10 +164,9 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(goods_data, colWidths=[total_width*0.75, total_width*0.25],
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('GRID',(0,0),(-1,-1),0.5,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
+                                 ('GRID',(0,0),(-1,-1),0.5,colors.black)]))
 
-    # === Product Table ===
+    # Product Table
     table_headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN",
                      "H.S NO\n(8digit)","COMPOSITION OF\nMATERIAL","COUNTRY\nOF\nORIGIN",
                      "QTY","UNIT\nPRICE\nFOB","AMOUNT"]
@@ -188,7 +174,6 @@ def generate_proforma_invoice(df, form_data):
 
     total_qty = df["QTY"].sum()
     total_amount = df["AMOUNT"].sum()
-
     for _, row in df.iterrows():
         table_data.append([
             str(row["STYLE NO"]), str(row["ITEM DESCRIPTION"]),
@@ -196,7 +181,6 @@ def generate_proforma_invoice(df, form_data):
             str(row["COMPOSITION"]), str(row["COUNTRY OF ORIGIN"]),
             f"{int(row['QTY']):,}", f"{float(row['UNIT PRICE']):.2f}", f"{float(row['AMOUNT']):.2f}"
         ])
-
     table_data.append(["","","","","","TOTAL",f"{total_qty:,}","",f"USD {total_amount:.2f}"])
 
     product_table = Table(table_data, colWidths=[0.8*inch,1.3*inch,0.8*inch,0.7*inch,
@@ -211,6 +195,23 @@ def generate_proforma_invoice(df, form_data):
         ('BOX',(0,0),(-1,-1),1,colors.black)
     ]))
     elements.append(product_table)
+
+    # Signature Section (aligned width)
+    signature_data = [
+        ["Signed by …………………….(Affix Stamp here)",
+         "for RNA Resources Group Ltd-Landmark (Babyshop)"],
+        ["Terms & Conditions (If Any)", ""]
+    ]
+    signature_table = Table(signature_data, colWidths=col_widths)
+    signature_table.setStyle(TableStyle([
+        ('FONTSIZE',(0,0),(-1,-1),9),
+        ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('ALIGN',(0,0),(0,0),'LEFT'),
+        ('ALIGN',(1,0),(1,0),'RIGHT'),
+        ('BOX',(0,0),(-1,-1),1,colors.black),
+        ('GRID',(0,0),(-1,-1),0.5,colors.black)
+    ]))
+    elements.append(signature_table)
 
     doc.build(elements)
     buffer.seek(0)
