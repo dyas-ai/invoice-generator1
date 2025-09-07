@@ -9,7 +9,7 @@ from reportlab.lib.units import inch
 import io
 from num2words import num2words
 
-# ===== Preprocessing Function =====
+# ===== Preprocessing =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
@@ -26,7 +26,8 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     if stacked_header_idx >= 0:
         headers = (
-            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " + df_raw.iloc[header_row_idx].astype(str).fillna("")
+            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " +
+            df_raw.iloc[header_row_idx].astype(str).fillna("")
         )
     else:
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
@@ -110,7 +111,6 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped = grouped[final_cols].reset_index(drop=True)
     return grouped
 
-
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
@@ -125,11 +125,56 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
+    # widths
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # ... (header, consignee, shipping, goods blocks remain unchanged) ...
+    # Supplier
+    supplier_data = [
+        [Paragraph("<b>Supplier Name:</b>", header_style), Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
+        ["", Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
+        [Paragraph("<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
+         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
+        [Paragraph("<b>Phone:</b> 9817473373", normal_style), Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
+        [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
+    ]
+    elements.append(Table(supplier_data, colWidths=header_col_widths,
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+
+    # Consignee + Bank
+    consignee_data = [
+        [Paragraph("<b>Consignee:</b>", header_style), Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
+        [Paragraph(form_data['consignee_name'], normal_style), ""],
+        [Paragraph(form_data['consignee_address'], normal_style), Paragraph("<b>Bank Details</b>", header_style)],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""],
+        ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
+        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
+        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
+        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
+        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
+        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
+    ]
+    elements.append(Table(consignee_data, colWidths=header_col_widths,
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+
+    # Shipping
+    shipping_data = [
+        [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
+         Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
+        [Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style), ""]
+    ]
+    elements.append(Table(shipping_data, colWidths=header_col_widths,
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+
+    # Goods
+    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
+                   Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
+    elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
@@ -168,25 +213,24 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # ===== Signature Section =====
+    # Signature Block
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
     signature_data = [
         [Paragraph(f"TOTAL US DOLLAR {total_words} DOLLARS",
-                   ParagraphStyle('TotalWords', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)), ""],
-        [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
+                   ParagraphStyle('BoldCenter', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_CENTER)),""],
+        [Paragraph("Terms & Conditions (If Any)", normal_style),""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
-         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
+         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", ParagraphStyle('RightAlign', parent=normal_style, alignment=TA_RIGHT))]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                    ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                   ('VALIGN',(0,2),(-1,2),'BOTTOM')])  # bottom align last row
+                                   ('VALIGN',(0,0),(-1,-1),'BOTTOM')])
     elements.append(signature_table)
 
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
 
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
