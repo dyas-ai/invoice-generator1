@@ -125,12 +125,11 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
-    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=7)
+                                  spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
@@ -146,13 +145,14 @@ def generate_proforma_invoice(df, form_data):
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('Supplier', parent=header_style, leading=9)),
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('Right', parent=normal_style, alignment=TA_LEFT, leading=8))]
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('SupplierDetail', parent=header_style, leading=6)),
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('TopAlign', parent=header_style, alignment=TA_LEFT, spaceBefore=0))],
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBELOW',(0,0),(-1,0),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('LINEBELOW',(1,0),(1,0),1,colors.black),
+                                 ('VALIGN',(0,1),(1,1),'TOP')]))
 
     # Consignee section
     consignee_data = [
@@ -183,7 +183,10 @@ def generate_proforma_invoice(df, form_data):
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
+                                 ('TOPPADDING',(0,1),(-1,2),1),
+                                 ('BOTTOMPADDING',(0,1),(-1,2),1)]))
 
     # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
@@ -208,6 +211,7 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
+    # TOTAL row
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -235,13 +239,12 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature block with e-stamp
-    total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
+    # Signature block with e-stamp and total in words
+    total_words_str = num2words(round(total_amount), to='cardinal', lang='en').upper()
+    total_words_str = f"TOTAL IN WORDS: USD {total_words_str} DOLLARS"
+
     signature_data = [
-        [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
-                   ParagraphStyle('LeftBold', parent=styles['Normal'],
-                                  fontName='Helvetica-Bold', fontSize=7,
-                                  alignment=TA_LEFT, wordWrap='CJK')), ""],
+        [Paragraph(total_words_str, ParagraphStyle('TotalWords', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)), ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=2*inch, height=1*inch), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
@@ -249,7 +252,8 @@ def generate_proforma_invoice(df, form_data):
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
+                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM'),
+                                   ('SPAN',(0,0),(-1,0))])
     elements.append(signature_table)
 
     doc.build(elements)
@@ -296,8 +300,9 @@ if uploaded_file is not None:
                          "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
+
             pdf_buffer = generate_proforma_invoice(df, form_data)
-            st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download PDF", data=pdf_buffer, file_name="Proforma_Invoice.pdf")
+            st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
+
     except Exception as e:
         st.error(f"❌ Error: {e}")
