@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
@@ -9,10 +9,11 @@ from reportlab.lib.units import inch
 import io
 from num2words import num2words
 
-# ===== Preprocessing =====
+# ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
 
+    # detect header row
     header_row_idx = None
     stacked_header_idx = None
     for i in range(min(max_rows, len(df_raw))):
@@ -24,15 +25,16 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     if header_row_idx is None:
         raise ValueError("Could not detect header row with 'Style' column!")
 
+    # combine stacked headers
     if stacked_header_idx >= 0:
         headers = (
-            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " +
-            df_raw.iloc[header_row_idx].astype(str).fillna("")
+            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " + df_raw.iloc[header_row_idx].astype(str).fillna("")
         )
     else:
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
     headers = headers.str.strip().astype(str)
 
+    # column mapping
     col_map = {
         "STYLE NO": ["Style", "Style No", "Item Style", "STYLE"],
         "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc", "DESC"],
@@ -55,6 +57,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
                 break
         df_columns[target_col] = found
 
+    # build dataframe
     df = df_raw.iloc[header_row_idx + 1:].copy()
     df.columns = headers
     df = df.reset_index(drop=True)
@@ -97,6 +100,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
+    # static extras
     grouped["FABRIC TYPE"] = "Knitted"
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
@@ -111,6 +115,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     grouped = grouped[final_cols].reset_index(drop=True)
     return grouped
 
+
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
@@ -118,6 +123,7 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
+    # Reduced font sizes
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER,
                                  fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7, fontName='Helvetica-Bold', alignment=TA_LEFT)
@@ -130,7 +136,7 @@ def generate_proforma_invoice(df, form_data):
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier
+    # Supplier section
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style), Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
@@ -143,7 +149,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Consignee + Bank
+    # Consignee section
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style), Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
@@ -159,7 +165,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Shipping
+    # Shipping section
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -170,7 +176,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Goods
+    # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
                    Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
@@ -213,24 +219,38 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature Block
+    # Signature Section with top and bottom aligned content
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
-    signature_data = [
-        [Paragraph(f"TOTAL US DOLLAR {total_words} DOLLARS",
-                   ParagraphStyle('BoldCenter', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_CENTER)),""],
-        [Paragraph("Terms & Conditions (If Any)", normal_style),""],
-        [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
-         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", ParagraphStyle('RightAlign', parent=normal_style, alignment=TA_RIGHT))]
+
+    signature_top = [
+        [Paragraph(f"<b>TOTAL US DOLLAR {total_words} DOLLARS</b>", ParagraphStyle('TotalWords', parent=styles['Normal'],
+                                                        fontName='Helvetica-Bold', fontSize=7, alignment=TA_CENTER))],
+        [Paragraph("Terms & Conditions (If Any)", normal_style)]
     ]
-    signature_table = Table(signature_data, colWidths=header_col_widths,
-                            style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                   ('VALIGN',(0,0),(-1,-1),'BOTTOM')])
+    signature_bottom = [
+        [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
+         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
+    ]
+
+    signature_table = Table(
+        [[signature_top, ""], [signature_bottom, ""]],
+        colWidths=[total_table_width/2, total_table_width/2],
+        rowHeights=[None, 30]  # space for bottom row
+    )
+    signature_table.setStyle(TableStyle([
+        ('BOX',(0,0),(-1,-1),1,colors.black),
+        ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+        ('VALIGN',(0,0),(-1,0),'TOP'),
+        ('VALIGN',(0,1),(-1,1),'BOTTOM'),
+        ('ALIGN',(0,1),(0,1),'LEFT'),
+        ('ALIGN',(1,1),(1,1),'RIGHT'),
+    ]))
     elements.append(signature_table)
 
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
 
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
