@@ -167,7 +167,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     return grouped
 
 
-# ===== PDF Generator with alignment and signature aligned to same width =====
+# ===== PDF Generator with ALL sections aligned to product table width =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -185,8 +185,14 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    total_width = 7.0 * inch
-    col_widths = [total_width / 2, total_width / 2]
+    # CRITICAL: Define the SAME total width for ALL tables to match the product table
+    # Product table column widths (must match exactly)
+    product_col_widths = [0.8 * inch, 1.3 * inch, 0.8 * inch, 0.7 * inch,
+                          1.1 * inch, 0.7 * inch, 0.5 * inch, 0.6 * inch, 0.8 * inch]
+    total_table_width = sum(product_col_widths)  # This is our reference width
+    
+    # All header sections will use this same total width split into 2 columns
+    header_col_widths = [total_table_width / 2, total_table_width / 2]
 
     # Supplier + PI block
     supplier_data = [
@@ -200,7 +206,7 @@ def generate_proforma_invoice(df, form_data):
          Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
         [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
     ]
-    elements.append(Table(supplier_data, colWidths=col_widths,
+    elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX', (0, 0), (-1, -1), 1, colors.black),
                                  ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
@@ -220,7 +226,7 @@ def generate_proforma_invoice(df, form_data):
         ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
         ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
     ]
-    elements.append(Table(consignee_data, colWidths=col_widths,
+    elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX', (0, 0), (-1, -1), 1, colors.black),
                                  ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
@@ -233,24 +239,24 @@ def generate_proforma_invoice(df, form_data):
         [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
         [Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style), ""]
     ]
-    elements.append(Table(shipping_data, colWidths=col_widths,
+    elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX', (0, 0), (-1, -1), 1, colors.black),
                                  ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
-    # Goods + Currency block (no spacer after it — attaches directly to product table)
+    # Goods + Currency block - uses same total width but different proportions
     goods_data = [
         [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
          Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('RightAlign',
                                                           parent=normal_style, alignment=TA_RIGHT,
                                                           fontName='Helvetica-Bold'))]
     ]
-    elements.append(Table(goods_data, colWidths=[total_width * 0.75, total_width * 0.25],
+    elements.append(Table(goods_data, colWidths=[total_table_width * 0.75, total_table_width * 0.25],
                           style=[('BOX', (0, 0), (-1, -1), 1, colors.black),
                                  ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                                  ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
 
-    # === Product table (aligned widths)
+    # === Product table (using the exact same widths as defined above)
     table_headers = ["STYLE NO.", "ITEM DESCRIPTION", "FABRIC TYPE\nKNITTED / WOVEN",
                      "H.S NO\n(8digit)", "COMPOSITION OF\nMATERIAL", "COUNTRY\nOF\nORIGIN",
                      "QTY", "UNIT\nPRICE\nFOB", "AMOUNT"]
@@ -280,8 +286,7 @@ def generate_proforma_invoice(df, form_data):
     # total row
     table_data.append(["", "", "", "", "", "TOTAL", f"{total_qty:,}", "", f"USD {total_amount:.2f}"])
 
-    product_table = Table(table_data, colWidths=[0.8 * inch, 1.3 * inch, 0.8 * inch, 0.7 * inch,
-                                                 1.1 * inch, 0.7 * inch, 0.5 * inch, 0.6 * inch, 0.8 * inch])
+    product_table = Table(table_data, colWidths=product_col_widths)
     product_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -293,13 +298,13 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature section aligned to same width (two columns)
+    # Signature section - NOW aligned to same total width as product table
     signature_data = [
         ["Signed by …………………….(Affix Stamp here)",
          "for RNA Resources Group Ltd-Landmark (Babyshop)"],
         ["Terms & Conditions (If Any)", ""]
     ]
-    signature_table = Table(signature_data, colWidths=col_widths)
+    signature_table = Table(signature_data, colWidths=header_col_widths)  # Same width as header sections
     signature_table.setStyle(TableStyle([
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
