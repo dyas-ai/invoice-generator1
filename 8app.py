@@ -131,9 +131,9 @@ def generate_proforma_invoice(df, form_data):
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=6)
+                                  spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
-                                  spaceBefore=0, spaceAfter=0, leading=5)
+                                  spaceBefore=0, spaceAfter=0, leading=7)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
@@ -166,10 +166,10 @@ def generate_proforma_invoice(df, form_data):
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph("<b>Bank Details (Including Swift/IBAN)</b>", header_style)],
+         Paragraph("<b>Bank Details</b>", header_style)],
         [Paragraph(form_data['consignee_tel'], normal_style), ""],
-        ["", Paragraph(f"<b>BENEFICIARY</b> :- {form_data['bank_beneficiary']}", normal_style)],
-        ["", Paragraph(f"<b>ACCOUNT NO</b> :- {form_data['bank_account']}", normal_style)],
+        ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
+        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
         ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
         ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
         ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
