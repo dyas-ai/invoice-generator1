@@ -131,9 +131,9 @@ def generate_proforma_invoice(df, form_data):
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=8)
+                                  spaceBefore=0, spaceAfter=0, leading=6)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
-                                  spaceBefore=0, spaceAfter=0, leading=7)
+                                  spaceBefore=0, spaceAfter=0, leading=5)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
