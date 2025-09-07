@@ -126,6 +126,7 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
+    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
@@ -133,7 +134,8 @@ def generate_proforma_invoice(df, form_data):
                                   spaceBefore=0, spaceAfter=0, leading=8)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
-    supplier_style = ParagraphStyle('Supplier', parent=normal_style, leading=8)  # reduced vertical spacing
+    supplier_style = ParagraphStyle('Supplier', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
+                                   spaceBefore=0, spaceAfter=0, leading=6)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
@@ -143,7 +145,7 @@ def generate_proforma_invoice(df, form_data):
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier section (fixed PI/Reference)
+    # ===== Supplier section (fixed top-align right cell) =====
     supplier_data = [
         [
             Paragraph("<b>Supplier Name:</b>", header_style),
@@ -165,12 +167,19 @@ def generate_proforma_invoice(df, form_data):
             )
         ]
     ]
-    elements.append(Table(supplier_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
 
-    # Consignee section
+    elements.append(Table(
+        supplier_data,
+        colWidths=header_col_widths,
+        style=[
+            ('BOX',(0,0),(-1,-1),1,colors.black),
+            ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+            ('LINEBELOW',(1,0),(1,0),1,colors.black),
+            ('VALIGN',(1,1),(1,1),'TOP')  # top-align right cell
+        ]
+    ))
+
+    # ===== Consignee section =====
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
@@ -189,7 +198,7 @@ def generate_proforma_invoice(df, form_data):
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Shipping section
+    # ===== Shipping section =====
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -201,7 +210,7 @@ def generate_proforma_invoice(df, form_data):
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Goods + Currency
+    # ===== Goods + Currency =====
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
                    Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style,
                                                                     alignment=TA_RIGHT,
@@ -209,15 +218,14 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
                           style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
 
-    # Product Table
+    # ===== Product Table =====
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
                "COMPOSITION OF\nMATERIAL","COUNTRY\nOF\nORIGIN","QTY","UNIT\nPRICE\nFOB","AMOUNT"]
     table_data = [headers]
 
     total_qty,total_amount = 0,0.0
     for _,row in df.iterrows():
-        qty = int(row.get("QTY",0) or 0)
-        price = float(row.get("UNIT PRICE",0.0) or 0.0)
+        qty = int(row.get("QTY",0) or 0); price = float(row.get("UNIT PRICE",0.0) or 0.0)
         amt = float(row.get("AMOUNT", qty*price) or (qty*price))
         total_qty += qty; total_amount += amt
         table_data.append([str(row.get("STYLE NO","")),str(row.get("ITEM DESCRIPTION","")),
@@ -225,6 +233,7 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
+    # TOTAL row (merged) - FIXED: moved total_qty to position 6
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -252,7 +261,7 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature block
+    # ===== Signature block =====
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
     signature_data = [
         [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
@@ -272,7 +281,6 @@ def generate_proforma_invoice(df, form_data):
     buffer.seek(0)
     return buffer
 
-
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
 st.title("📄 Proforma Invoice Generator")
@@ -281,8 +289,7 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        st.write("### Preview of Processed Data")
-        st.dataframe(df)
+        st.write("### Preview of Processed Data"); st.dataframe(df)
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
@@ -308,17 +315,20 @@ if uploaded_file is not None:
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
-            form_data = {
-                "pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
-                "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
-                "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
-                "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
-                "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
-                "remarks":remarks,"goods_desc":goods_desc
-            }
+            form_data = {"pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
+                         "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
+                         "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
+                         "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
+                         "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
+                         "remarks":remarks,"goods_desc":goods_desc}
             pdf_buffer = generate_proforma_invoice(df, form_data)
             st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
-                               file_name="Proforma_Invoice.pdf", mime="application/pdf")
+                        st.download_button(
+                "⬇️ Download Proforma Invoice",
+                data=pdf_buffer,
+                file_name="Proforma_Invoice.pdf",
+                mime="application/pdf"
+            )
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
