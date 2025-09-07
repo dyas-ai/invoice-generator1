@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
@@ -131,12 +131,12 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # widths
+    # width setup
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
-    # Supplier section
+    # Supplier
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style), Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
@@ -149,7 +149,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Consignee section
+    # Consignee
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style), Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
@@ -165,7 +165,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Shipping section
+    # Shipping
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
@@ -176,7 +176,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
-    # Goods + Currency
+    # Goods
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
                    Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
@@ -206,6 +206,7 @@ def generate_proforma_invoice(df, form_data):
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
         ('BOX',(0,0),(-1,-1),1,colors.black),
+        # vertical lines only
         ('LINEBEFORE',(1,0),(1,-1),0.5,colors.black),
         ('LINEBEFORE',(2,0),(2,-1),0.5,colors.black),
         ('LINEBEFORE',(3,0),(3,-1),0.5,colors.black),
@@ -214,36 +215,34 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
+        # header & total horizontal lines
         ('LINEBELOW',(0,0),(-1,0),0.5,colors.black),
         ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
     ]))
     elements.append(product_table)
 
-    # Signature Section with top and bottom aligned content
+    # Signature Section
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
-
-    signature_top = [
-        [Paragraph(f"<b>TOTAL US DOLLAR {total_words} DOLLARS</b>", ParagraphStyle('TotalWords', parent=styles['Normal'],
-                                                        fontName='Helvetica-Bold', fontSize=7, alignment=TA_CENTER))],
-        [Paragraph("Terms & Conditions (If Any)", normal_style)]
-    ]
-    signature_bottom = [
+    signature_data = [
+        [Paragraph(f"<b>TOTAL US DOLLAR {total_words} DOLLARS</b>",
+                   ParagraphStyle('TotalWords', parent=styles['Normal'],
+                                  fontName='Helvetica-Bold', fontSize=7, alignment=TA_CENTER)), ""],
+        [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
-
-    signature_table = Table(
-        [[signature_top, ""], [signature_bottom, ""]],
-        colWidths=[total_table_width/2, total_table_width/2],
-        rowHeights=[None, 30]  # space for bottom row
-    )
+    signature_table = Table(signature_data, colWidths=header_col_widths)
     signature_table.setStyle(TableStyle([
         ('BOX',(0,0),(-1,-1),1,colors.black),
         ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-        ('VALIGN',(0,0),(-1,0),'TOP'),
-        ('VALIGN',(0,1),(-1,1),'BOTTOM'),
-        ('ALIGN',(0,1),(0,1),'LEFT'),
-        ('ALIGN',(1,1),(1,1),'RIGHT'),
+        ('SPAN',(0,0),(1,0)),
+        ('SPAN',(0,1),(1,1)),
+        ('ALIGN',(0,0),(-1,0),'CENTER'),
+        ('ALIGN',(0,1),(-1,1),'LEFT'),
+        ('VALIGN',(0,2),(0,2),'BOTTOM'),
+        ('VALIGN',(1,2),(1,2),'BOTTOM'),
+        ('ALIGN',(0,2),(0,2),'LEFT'),
+        ('ALIGN',(1,2),(1,2),'RIGHT'),
     ]))
     elements.append(signature_table)
 
