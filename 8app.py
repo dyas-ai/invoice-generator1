@@ -183,7 +183,7 @@ def generate_proforma_invoice(df, form_data):
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
         [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
         [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
-        ["", Paragraph(f"<b>REMARKS IF ANY:-</b> {form_data['remarks']}", normal_style)]
+        ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)]
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
