@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
@@ -28,7 +28,8 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     # combine stacked headers
     if stacked_header_idx >= 0:
         headers = (
-            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " + df_raw.iloc[header_row_idx].astype(str).fillna("")
+            df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " +
+            df_raw.iloc[header_row_idx].astype(str).fillna("")
         )
     else:
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
@@ -119,40 +120,50 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 # ===== PDF Generator =====
 def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=24, bottomMargin=24, leftMargin=24, rightMargin=24)
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            topMargin=24, bottomMargin=24,
+                            leftMargin=24, rightMargin=24)
     elements = []
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER,
-                                 fontName='Helvetica-Bold', spaceAfter=6)
-    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7, fontName='Helvetica-Bold', alignment=TA_LEFT)
+    # Reduced font sizes
+    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
+                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
+    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
+                                  fontName='Helvetica-Bold', alignment=TA_LEFT)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
     # width setup
-    product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch, 1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
+    product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
+                          1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
     header_col_widths = [total_table_width/2, total_table_width/2]
 
     # Supplier section
     supplier_data = [
-        [Paragraph("<b>Supplier Name:</b>", header_style), Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
+        [Paragraph("<b>Supplier Name:</b>", header_style),
+         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
         ["", Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
         [Paragraph("<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
          Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
-        [Paragraph("<b>Phone:</b> 9817473373", normal_style), Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
+        [Paragraph("<b>Phone:</b> 9817473373", normal_style),
+         Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
         [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
     # Consignee section
     consignee_data = [
-        [Paragraph("<b>Consignee:</b>", header_style), Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
+        [Paragraph("<b>Consignee:</b>", header_style),
+         Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
-        [Paragraph(form_data['consignee_address'], normal_style), Paragraph("<b>Bank Details</b>", header_style)],
+        [Paragraph(form_data['consignee_address'], normal_style),
+         Paragraph("<b>Bank Details</b>", header_style)],
         [Paragraph(form_data['consignee_tel'], normal_style), ""],
         ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
         ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
@@ -162,7 +173,8 @@ def generate_proforma_invoice(df, form_data):
         ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
     ]
     elements.append(Table(consignee_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
     # Shipping section
     shipping_data = [
@@ -173,11 +185,14 @@ def generate_proforma_invoice(df, form_data):
         [Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style), ""]
     ]
     elements.append(Table(shipping_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
     # Goods + Currency
     goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
-                   Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
+                   Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style,
+                                                                    alignment=TA_RIGHT,
+                                                                    fontName='Helvetica-Bold'))]]
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
                           style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
 
@@ -196,8 +211,10 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
-    # Total row with merges
-    table_data.append(["TOTAL","","","","","","",f"{total_qty:,}",f"USD {total_amount:.2f}"])
+    # TOTAL row (merged) - FIXED: moved total_qty to position 6
+    table_data.append(
+        ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
+    )
 
     product_table = Table(table_data,colWidths=product_col_widths, repeatRows=1)
     product_table.setStyle(TableStyle([
@@ -206,7 +223,6 @@ def generate_proforma_invoice(df, form_data):
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
         ('BOX',(0,0),(-1,-1),1,colors.black),
-        # vertical lines
         ('LINEBEFORE',(1,0),(1,-1),0.5,colors.black),
         ('LINEBEFORE',(2,0),(2,-1),0.5,colors.black),
         ('LINEBEFORE',(3,0),(3,-1),0.5,colors.black),
@@ -215,31 +231,30 @@ def generate_proforma_invoice(df, form_data):
         ('LINEBEFORE',(6,0),(6,-1),0.5,colors.black),
         ('LINEBEFORE',(7,0),(7,-1),0.5,colors.black),
         ('LINEBEFORE',(8,0),(8,-1),0.5,colors.black),
-        # header underline + total row top line
-        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black),
-        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black),
-        # merge for TOTAL row
-        ('SPAN',(0,-1),(5,-1)),
+        ('LINEBELOW',(0,0),(-1,0),0.5,colors.black), # header underline
+        ('LINEABOVE',(0,-1),(-1,-1),0.5,colors.black), # top of total row
+        ('SPAN',(0,-1),(5,-1)),  # merge first 6 cols
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
-        ('SPAN',(6,-1),(7,-1)),
-        ('ALIGN',(6,-1),(7,-1),'CENTER'),
+        ('SPAN',(6,-1),(7,-1)),  # merge qty + unit price cols
     ]))
     elements.append(product_table)
 
-    # Total in words
-    total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
-    elements.append(Paragraph(f"TOTAL US DOLLAR {total_words} DOLLARS",
-                              ParagraphStyle('TotalWords', parent=styles['Normal'],
-                                             fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)))
-
     # Signature block
+    total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
     signature_data = [
+        [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
+                   ParagraphStyle('CenterBold', parent=styles['Normal'],
+                                  fontName='Helvetica-Bold', fontSize=7,
+                                  alignment=TA_CENTER)), ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
-    elements.append(Table(signature_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
+    signature_table = Table(signature_data, colWidths=header_col_widths,
+                            style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                   ('VALIGN',(0,-1),(-1,-1),'BOTTOM')])
+    elements.append(signature_table)
 
     doc.build(elements)
     buffer.seek(0)
