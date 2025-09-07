@@ -156,7 +156,7 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('LINEBELOW',(1,0),(1,0),2,colors.green)]))
+                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
 
     # Consignee section
     consignee_data = [
