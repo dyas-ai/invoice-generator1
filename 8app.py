@@ -131,7 +131,7 @@ def generate_proforma_invoice(df, form_data):
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=8)
+                                  spaceBefore=0, spaceAfter=0, leading=6)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
@@ -146,14 +146,9 @@ def generate_proforma_invoice(df, form_data):
     # Supplier section
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
-         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), 
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
-        [Paragraph("<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
-         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
-        [Paragraph("<b>Phone:</b> 9817473373", normal_style),
-         Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
-        [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
+         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}<br/><b>Landmark order Reference:</b> {form_data['order_ref']}", header_style)],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", header_style),
+         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
