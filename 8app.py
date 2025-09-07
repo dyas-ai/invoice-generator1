@@ -147,12 +147,12 @@ def generate_proforma_invoice(df, form_data):
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), ""],
-        ["", Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b>", header_style), 
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}", normal_style)],
+        ["", Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
         [Paragraph("<b>Address:</b> 6, Picaso Bithi, Kolkata - 700017", normal_style),
-         Paragraph(f"<b>Buyer Name:</b> {form_data['buyer_name']}", normal_style)],
-        [Paragraph("<b>Phone:</b> 9817473373", normal_style),
          Paragraph(f"<b>Brand Name:</b> {form_data['brand_name']}", normal_style)],
+        [Paragraph("<b>Phone:</b> 9817473373", normal_style), ""],
         [Paragraph("<b>Fax:</b> N.A.", normal_style), ""]
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
@@ -197,12 +197,7 @@ def generate_proforma_invoice(df, form_data):
                                                                     alignment=TA_RIGHT,
                                                                     fontName='Helvetica-Bold'))]]
     elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                 ('LEFTPADDING',(0,0),(-1,-1),3),
-                                 ('RIGHTPADDING',(0,0),(-1,-1),3),
-                                 ('TOPPADDING',(0,0),(-1,-1),1),
-                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]))
+                          style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
