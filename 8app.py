@@ -12,6 +12,8 @@ from num2words import num2words
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df_raw = pd.read_excel(uploaded_file, header=None)
+
+    # detect header row
     header_row_idx = None
     stacked_header_idx = None
     for i in range(min(max_rows, len(df_raw))):
@@ -23,6 +25,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     if header_row_idx is None:
         raise ValueError("Could not detect header row with 'Style' column!")
 
+    # combine stacked headers
     if stacked_header_idx >= 0:
         headers = (
             df_raw.iloc[stacked_header_idx].astype(str).fillna("") + " " +
@@ -32,6 +35,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
         headers = df_raw.iloc[header_row_idx].astype(str).fillna("")
     headers = headers.str.strip().astype(str)
 
+    # column mapping
     col_map = {
         "STYLE NO": ["Style", "Style No", "Item Style", "STYLE"],
         "ITEM DESCRIPTION": ["Descreption", "Description", "Item Description", "Item Desc", "DESC"],
@@ -54,9 +58,11 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
                 break
         df_columns[target_col] = found
 
+    # build dataframe
     df = df_raw.iloc[header_row_idx + 1:].copy()
     df.columns = headers
     df = df.reset_index(drop=True)
+
     rename_dict = {v: k for k, v in df_columns.items() if v is not None}
     if rename_dict:
         df = df.rename(columns=rename_dict)
@@ -76,9 +82,11 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df["STYLE NO"] = df["STYLE NO"].astype(str).str.strip()
     df = df[~df["STYLE NO"].isin(["", "nan", "NaN", "None", "NONE"])]
     df = df[~df["STYLE NO"].str.contains("total|grand|remarks|note", case=False, na=False)]
+
     df["QTY"] = pd.to_numeric(df.get("QTY", 0), errors="coerce").fillna(0).astype(int)
     df["UNIT PRICE"] = pd.to_numeric(df.get("UNIT PRICE", 0.0), errors="coerce").fillna(0.0).astype(float)
     df["AMOUNT"] = df["QTY"] * df["UNIT PRICE"]
+
     df = df[~((df["QTY"] == 0) & (df["UNIT PRICE"] == 0) & (df["STYLE NO"].str.strip() == ""))]
 
     group_by_cols = ["STYLE NO", "ITEM DESCRIPTION", "COMPOSITION", "UNIT PRICE"]
@@ -88,10 +96,12 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
 
     grouped = (
         df.groupby(group_by_cols, dropna=False, as_index=False)
-        .agg({"QTY": "sum"}).reset_index(drop=True)
+        .agg({"QTY": "sum"})
+        .reset_index(drop=True)
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
+    # static extras
     grouped["FABRIC TYPE"] = "Knitted"
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
@@ -115,17 +125,18 @@ def generate_proforma_invoice(df, form_data):
     elements = []
 
     styles = getSampleStyleSheet()
+    # Reduced font sizes and line spacing
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
                                  alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=8)
+                                  spaceBefore=0, spaceAfter=0, leading=7)
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # Column widths
+    # width setup
     product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
                           1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
     total_table_width = sum(product_col_widths)
@@ -134,14 +145,14 @@ def generate_proforma_invoice(df, form_data):
     # Supplier section
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
-         Paragraph(f"<b>No. of PI:</b> {form_data['pi_number']}", header_style)],
-        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", header_style),
-         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", normal_style)]
+         Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}", header_style)],
+        [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('Supplier', parent=header_style, leading=9)),
+         Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('Right', parent=normal_style, alignment=TA_LEFT, leading=8))]
     ]
     elements.append(Table(supplier_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('LINEBELOW',(1,0),(1,0),1,colors.black)]))
+                                 ('LINEBELOW',(0,0),(-1,0),1,colors.black),
+                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black)]))
 
     # Consignee section
     consignee_data = [
@@ -189,17 +200,14 @@ def generate_proforma_invoice(df, form_data):
 
     total_qty,total_amount = 0,0.0
     for _,row in df.iterrows():
-        qty = int(row.get("QTY",0) or 0)
-        price = float(row.get("UNIT PRICE",0.0) or 0.0)
+        qty = int(row.get("QTY",0) or 0); price = float(row.get("UNIT PRICE",0.0) or 0.0)
         amt = float(row.get("AMOUNT", qty*price) or (qty*price))
-        total_qty += qty
-        total_amount += amt
+        total_qty += qty; total_amount += amt
         table_data.append([str(row.get("STYLE NO","")),str(row.get("ITEM DESCRIPTION","")),
                            str(row.get("FABRIC TYPE","")),str(row.get("HS CODE","")),
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
 
-    # TOTAL row
     table_data.append(
         ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
     )
@@ -227,18 +235,15 @@ def generate_proforma_invoice(df, form_data):
     ]))
     elements.append(product_table)
 
-    # Signature block
+    # Signature block with e-stamp
     total_words = num2words(round(total_amount), to='cardinal', lang='en').upper()
-    e_stamp_url = "https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png"
-    e_stamp_img = Image(e_stamp_url, width=2*inch, height=1*inch)  # adjust size as needed
-
     signature_data = [
         [Paragraph(f"<b>TOTAL IN WORDS:</b> USD {total_words} DOLLARS",
                    ParagraphStyle('LeftBold', parent=styles['Normal'],
                                   fontName='Helvetica-Bold', fontSize=7,
-                                  alignment=TA_LEFT)), ""],
+                                  alignment=TA_LEFT, wordWrap='CJK')), ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
-        [e_stamp_img, ""],
+        [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=2*inch, height=1*inch), ""],
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
@@ -293,7 +298,6 @@ if uploaded_file is not None:
                          "remarks":remarks,"goods_desc":goods_desc}
             pdf_buffer = generate_proforma_invoice(df, form_data)
             st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download Proforma Invoice", data=pdf_buffer,
-                               file_name="Proforma_Invoice.pdf", mime="application/pdf")
+            st.download_button("⬇️ Download PDF", data=pdf_buffer, file_name="Proforma_Invoice.pdf")
     except Exception as e:
         st.error(f"❌ Error: {e}")
