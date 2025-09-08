@@ -181,20 +181,21 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(consignee_table)
 
-    # Shipping section
+    # Shipping section - REDUCED SPACING
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
-        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
-        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
-        ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)]
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style),
+         Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""]
     ]
-    elements.append(Table(shipping_data, colWidths=header_col_widths,
+    shipping_table = Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                 ('TOPPADDING',(0,1),(-1,2),1),
-                                 ('BOTTOMPADDING',(0,1),(-1,2),1)]))
+                                 ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]) # Minimal bottom padding
+    elements.append(shipping_table)
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
     combined_data = [
