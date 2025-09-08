@@ -133,16 +133,7 @@ def generate_proforma_invoice(df, form_data):
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
-    # Create title in a table to match width of other sections
-    title_table = Table([[Paragraph("PROFORMA INVOICE", title_style)]], 
-                        colWidths=[total_table_width])
-    title_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6)
-    ]))
-    elements.append(title_table)
+    elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
     # width setup - adjust product table to align with header sections
     # First calculate the total table width from original product columns to maintain consistency
@@ -168,17 +159,6 @@ def generate_proforma_invoice(df, form_data):
         right_section_width * 0.25  # AMOUNT (25% of right) - reduced from 28%
     ]
     header_col_widths = [total_table_width/2, total_table_width/2]
-
-    # Create title in a table to match width of other sections
-    title_table = Table([[Paragraph("PROFORMA INVOICE", title_style)]], 
-                        colWidths=[total_table_width])
-    title_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6)
-    ]))
-    elements.append(title_table)
 
     # Supplier section
     supplier_data = [
