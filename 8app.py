@@ -188,7 +188,7 @@ def generate_proforma_invoice(df, form_data):
 
     # Consignee section - ULTRA TIGHT SPACING
     # Create compact styles for bank details
-    bank_style = ParagraphStyle('BankCompact', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', 
+    bank_style = ParagraphStyle('BankCompact', parent=normal_style, fontSize=7, fontName='Helvetica', 
                                leading=8, spaceAfter=0, spaceBefore=0, leftIndent=0, rightIndent=0)
     
     consignee_data = [
