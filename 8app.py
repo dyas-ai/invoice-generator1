@@ -187,8 +187,8 @@ def generate_proforma_invoice(df, form_data):
                                  ('BOTTOMPADDING',(1,1),(1,1),50)]))  # Increased bottom padding to 50 points
 
     # Consignee section - ULTRA TIGHT SPACING
-    # Create compact styles for bank details with explicit plain text
-    bank_style = ParagraphStyle('BankCompact', parent=styles['Normal'], fontSize=7, fontName='Helvetica', 
+    # Create compact styles for bank details
+    bank_style = ParagraphStyle('BankCompact', parent=normal_style, fontSize=7, fontName='Helvetica', 
                                leading=8, spaceAfter=0, spaceBefore=0, leftIndent=0, rightIndent=0)
     
     consignee_data = [
@@ -236,13 +236,12 @@ def generate_proforma_invoice(df, form_data):
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
     combined_data = [
-        # Row 1: Description of goods (left), empty right
+        # Row 1: Description of goods (left), Currency on right
         [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
-                   ParagraphStyle('Goods', parent=normal_style, fontSize=7)), ""],
-        # Row 2: Empty left, Currency on right
-        ["", Paragraph("<b>CURRENCY: USD</b>", 
-                       ParagraphStyle('Currency', parent=normal_style, 
-                                      fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
+                   ParagraphStyle('Goods', parent=normal_style, fontSize=7)), 
+         Paragraph("<b>CURRENCY: USD</b>", 
+                   ParagraphStyle('Currency', parent=normal_style, 
+                                  fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
     ]
     
     combined_table = Table(combined_data, colWidths=header_col_widths,
@@ -250,11 +249,11 @@ def generate_proforma_invoice(df, form_data):
                                # Outer border only - NO line between rows
                                ('BOX',(0,0),(-1,-1),1,colors.black),
                                ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                               ('VALIGN',(0,0),(-1,-1),'MIDDLE')
+                               ('VALIGN',(0,0),(0,0),'TOP'),      # Description of goods - TOP alignment
+                               ('VALIGN',(1,0),(1,0),'BOTTOM')   # Currency - BOTTOM alignment
                            ])
-    # Set both row heights to 25 units each
-    combined_table._argH[0] = 25  # Row 1 height
-    combined_table._argH[1] = 25  # Row 2 height
+    # Set row height
+    combined_table._argH[0] = 50  # Single row height
     elements.append(combined_table)
 
     # Product Table with additional empty rows
