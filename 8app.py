@@ -101,8 +101,18 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
+    # Read fabric type from column N, row 5 (0-indexed: column 13, row 4)
+    try:
+        fabric_type_value = df_raw.iloc[4, 13]  # Row 5 (index 4), Column N (index 13)
+        if pd.isna(fabric_type_value) or str(fabric_type_value).strip() == "":
+            fabric_type_value = "Knitted"  # Default fallback
+        else:
+            fabric_type_value = str(fabric_type_value).strip()
+    except (IndexError, KeyError):
+        fabric_type_value = "Knitted"  # Default fallback if cell doesn't exist
+
     # static extras
-    grouped["FABRIC TYPE"] = "Knitted"
+    grouped["FABRIC TYPE"] = fabric_type_value
     grouped["HS CODE"] = "61112000"
     grouped["COUNTRY OF ORIGIN"] = "India"
 
