@@ -121,7 +121,7 @@ def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=24, bottomMargin=24,
-                            leftMargin=24, rightMargin=24)
+                            leftMargin=42, rightMargin=42)
     elements = []
 
     styles = getSampleStyleSheet()
@@ -134,37 +134,7 @@ def generate_proforma_invoice(df, form_data):
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
-                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6,
-                                 borderWidth=1, borderColor=colors.black, borderPadding=6)
-    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
-                                  fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=8)
-    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
-                                  spaceBefore=0, spaceAfter=0, leading=7)
-
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
-                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6,
-                                 borderWidth=1, borderColor=colors.black, borderPadding=6)
-    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
-                                  fontName='Helvetica-Bold', alignment=TA_LEFT, 
-                                  spaceBefore=0, spaceAfter=0, leading=8)
-    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
-                                  spaceBefore=0, spaceAfter=0, leading=7)
-
-    # Create title with reduced width
-    title_data = [[Paragraph("PROFORMA INVOICE", 
-                             ParagraphStyle('TitleNoBorder', parent=styles['Normal'], fontSize=12,
-                                          alignment=TA_CENTER, fontName='Helvetica-Bold'))]]
-    title_table = Table(title_data, colWidths=[total_table_width - 0.5*inch],
-                        style=[('BOX',(0,0),(0,0),1,colors.black),
-                               ('ALIGN',(0,0),(0,0),'CENTER'),
-                               ('VALIGN',(0,0),(0,0),'MIDDLE'),
-                               ('TOPPADDING',(0,0),(0,0),6),
-                               ('BOTTOMPADDING',(0,0),(0,0),6)])
-    elements.append(title_table)
+    elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
     # width setup - adjust product table to align with header sections
     # First calculate the total table width from original product columns to maintain consistency
