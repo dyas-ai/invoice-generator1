@@ -161,42 +161,29 @@ def generate_proforma_invoice(df, form_data):
     bank_header_style = ParagraphStyle('BankHeader', parent=header_style, 
                                        spaceAfter=0, spaceBefore=0, leading=6)
     
-    # Combine all Bank Details with consistent spacing
-    bank_details_all = f"""<b>Bank Details</b><br/>
-<b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/>
-<b>Account No</b> :- {form_data['bank_account']}<br/>
-<b>BANK'S NAME</b> :- {form_data['bank_name']}<br/>
-<b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/>
-<b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/>
-<b>BANK CODE</b> :- {form_data['bank_code']}"""
+    # Combine Bank Details with Beneficiary to eliminate gap
+    bank_details_combined = f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}"
     
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph(bank_details_all, ParagraphStyle('BankAll', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=9))],
-        [Paragraph(form_data['consignee_tel'], normal_style), ""]
+         Paragraph(bank_details_combined, ParagraphStyle('BankCombined', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=8))],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""],
+        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
+        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
+        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
+        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
+        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black)])
-    # Set reasonable row heights for bank detail rows to prevent overlapping
-    total_rows = len(consignee_data)
-    if total_rows > 2:
-        consignee_table._argH[2] = 18  # "Bank Details" row
-    if total_rows > 4:
-        consignee_table._argH[4] = 15  # "Beneficiary" row  
-    if total_rows > 5:
-        consignee_table._argH[5] = 15  # "Account No" row
-    if total_rows > 6:
-        consignee_table._argH[6] = 15  # "Bank Name" row
-    if total_rows > 7:
-        consignee_table._argH[7] = 15  # "Bank Address" row
-    if total_rows > 8:
-        consignee_table._argH[8] = 15  # "Swift Code" row
-    if total_rows > 9:
-        consignee_table._argH[9] = 15  # "Bank Code" row
+                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                   ('BOTTOMPADDING',(1,2),(1,2),0),    # Zero bottom padding for "Bank Details" cell
+                                   ('TOPPADDING',(1,4),(1,4),0)])
+    # Manually set the row height for the "Bank Details" row (row index 2) to be smaller
+    consignee_table._argH[2] = 12  # Reduce row height significantly
     elements.append(consignee_table)
 
     # Shipping section
