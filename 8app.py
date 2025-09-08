@@ -188,22 +188,29 @@ def generate_proforma_invoice(df, form_data):
                                  ('TOPPADDING',(0,1),(-1,2),1),
                                  ('BOTTOMPADDING',(0,1),(-1,2),1)]))
 
-    # ===== Combine Goods Description + Currency into one block =====
-    goods_currency_data = [
-        [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
-                   ParagraphStyle('Goods', parent=normal_style, fontSize=7)), 
-         Paragraph("<b>CURRENCY: USD</b>", 
-                   ParagraphStyle('Currency', parent=normal_style, fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
-    ]
+    # ===== Modified: Goods & Currency Rows =====
+    # Goods row (taller)
+    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
+                              ParagraphStyle('Goods', parent=normal_style, fontSize=7)),
+                   ""]]
+    goods_table = Table(goods_data, colWidths=[total_table_width, 0],
+                        style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                               ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                               ('LINEBELOW',(0,0),(-1,0),0,colors.white)])  # <-- remove bottom line
+    goods_table._argH[0] = 25
+    elements.append(goods_table)
 
-    goods_currency_table = Table(goods_currency_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
-                                 style=[
-                                     ('BOX',(0,0),(-1,-1),1,colors.black),   # outer box
-                                     ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-                                 ])
-    goods_currency_table._argH[0] = 25  # keep row height
-
-    elements.append(goods_currency_table)
+    # Currency row (taller)
+    currency_data = [["", 
+                      Paragraph("<b>CURRENCY: USD</b>", 
+                                ParagraphStyle('Currency', parent=normal_style, 
+                                               fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
+    currency_table = Table(currency_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
+                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                  ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                                  ('LINEABOVE',(0,0),(-1,0),0,colors.white)])  # <-- remove top line
+    currency_table._argH[0] = 25
+    elements.append(currency_table)
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
@@ -296,22 +303,35 @@ if uploaded_file is not None:
             bank_swift = st.text_input("SWIFT", "KKBKINBBCPC")
             bank_code = st.text_input("Bank Code", "0323")
             loading_country = st.text_input("Loading Country", "India")
-            port_loading = st.text_input("Port of Loading", "Mumbai")
-            shipment_date = st.text_input("Agreed Shipment Date", "07/02/2025")
+            port_loading = st.text_input("Port of Loading", "Kolkata")
+            shipment_date = st.date_input("Agreed Shipment Date")
             remarks = st.text_area("Remarks", "")
-            goods_desc = st.text_input("Description of goods", "Value Packs")
+            goods_desc = st.text_input("Description of Goods", "Value Packs")
+
             submitted = st.form_submit_button("Generate PDF")
-
-        if submitted:
-            form_data = {"pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
-                         "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
-                         "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
-                         "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
-                         "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
-                         "remarks":remarks,"goods_desc":goods_desc}
-
-            pdf_buffer = generate_proforma_invoice(df, form_data)
-            st.download_button("📥 Download PDF", pdf_buffer, file_name="Proforma_Invoice.pdf", mime="application/pdf")
-
+            if submitted:
+                form_data = {
+                    "pi_number": pi_number,
+                    "order_ref": order_ref,
+                    "buyer_name": buyer_name,
+                    "brand_name": brand_name,
+                    "consignee_name": consignee_name,
+                    "consignee_address": consignee_address,
+                    "consignee_tel": consignee_tel,
+                    "payment_term": payment_term,
+                    "bank_beneficiary": bank_beneficiary,
+                    "bank_account": bank_account,
+                    "bank_name": bank_name,
+                    "bank_address": bank_address,
+                    "bank_swift": bank_swift,
+                    "bank_code": bank_code,
+                    "loading_country": loading_country,
+                    "port_loading": port_loading,
+                    "shipment_date": shipment_date.strftime("%d/%m/%Y"),
+                    "remarks": remarks,
+                    "goods_desc": goods_desc
+                }
+                pdf_buffer = generate_proforma_invoice(df, form_data)
+                st.download_button("📥 Download Proforma Invoice", pdf_buffer, "proforma_invoice.pdf", "application/pdf")
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"❌ Error processing file: {e}")
