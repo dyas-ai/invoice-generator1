@@ -121,7 +121,7 @@ def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=24, bottomMargin=24,
-                            leftMargin=34.55, rightMargin=34.55)
+                            leftMargin=34.6, rightMargin=34.6)
     elements = []
 
     styles = getSampleStyleSheet()
