@@ -178,8 +178,8 @@ def generate_proforma_invoice(df, form_data):
     elements.append(Table(consignee_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('BOTTOMPADDING',(1,2),(1,2),1),    # Reduce bottom padding for "Bank Details" cell
-                                 ('TOPPADDING',(1,4),(1,4),1)]))
+                                 ('BOTTOMPADDING',(1,2),(1,2),0),    # Zero bottom padding for "Bank Details" cell
+                                 ('TOPPADDING',(1,4),(1,4),0)]))
 
     # Shipping section
     shipping_data = [
