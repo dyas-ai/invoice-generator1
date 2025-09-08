@@ -181,21 +181,27 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(consignee_table)
 
-    # Shipping section - REDUCED SPACING
+    # Shipping section - REDUCED SPACING BELOW AGREED SHIPMENT DATE
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
-        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style),
-         Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)],
-        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""]
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
+        ["", Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)]
     ]
     shipping_table = Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('VALIGN',(0,0),(-1,-1),'TOP'),
                                  ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
-                                 ('BOTTOMPADDING',(0,0),(-1,-1),1), # Minimal bottom padding
-                                 ('BOTTOMPADDING',(0,2),(0,2),11)])  # Extra space below Agreed Shipment Date
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]) # Minimal bottom padding
+    
+    # Set specific row heights to reduce spacing
+    shipping_table._argH[0] = 18  # Loading Country row
+    shipping_table._argH[1] = 18  # Port of Loading row  
+    shipping_table._argH[2] = 18  # Agreed Shipment Date row (reduced height)
+    shipping_table._argH[3] = 20  # Remarks row
+    
     elements.append(shipping_table)
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
