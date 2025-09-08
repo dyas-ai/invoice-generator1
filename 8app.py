@@ -181,20 +181,28 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(consignee_table)
 
-    # Shipping section - REDUCED SPACING
+    # Shipping section - ADJUSTED SPACING AND REMARKS POSITIONING
     shipping_data = [
         [Paragraph(f"<b>Loading Country:</b> {form_data['loading_country']}", normal_style),
          Paragraph("<b>L/C Advising Bank:</b> (If applicable)", normal_style)],
-        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style),
-         Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style)],
-        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""]
+        [Paragraph(f"<b>Port of Loading:</b> {form_data['port_loading']}", normal_style), ""],
+        [Paragraph(f"<b>Agreed Shipment Date:</b> {form_data['shipment_date']}", normal_style), ""],
+        ["", ""],  # Gap row
+        [Paragraph(f"<b>Remarks:</b> {form_data['remarks']}", normal_style), ""]
     ]
     shipping_table = Table(shipping_data, colWidths=header_col_widths,
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                 ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
-                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]) # Minimal bottom padding
+                                 ('VALIGN',(0,0),(-1,-2),'TOP'),        # Top align for all except last row
+                                 ('VALIGN',(0,-1),(0,-1),'BOTTOM'),     # Bottom align for remarks cell
+                                 ('ALIGN',(0,-1),(0,-1),'LEFT'),        # Left align for remarks cell
+                                 ('TOPPADDING',(0,0),(-1,-2),1),        # Minimal top padding for all except last row
+                                 ('BOTTOMPADDING',(0,0),(-1,-2),1),     # Minimal bottom padding for all except last row
+                                 ('TOPPADDING',(0,-1),(0,-1),0),        # Zero top padding for remarks
+                                 ('BOTTOMPADDING',(0,-1),(0,-1),1)])    # Minimal bottom padding for remarks
+    
+    # Set specific row height for the gap row to create more space
+    shipping_table._argH[3] = 12  # Gap row height
     elements.append(shipping_table)
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
