@@ -188,25 +188,25 @@ def generate_proforma_invoice(df, form_data):
                                  ('TOPPADDING',(0,1),(-1,2),1),
                                  ('BOTTOMPADDING',(0,1),(-1,2),1)]))
 
-    # ===== Goods Section (line removed) =====
-    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}",
-                             ParagraphStyle('Goods', parent=normal_style, fontSize=7))]]
-    goods_table = Table(goods_data, colWidths=[total_table_width])
-    goods_table.setStyle(TableStyle([
-        ('BOX',(0,0),(-1,-1),1,colors.black),
-        ('VALIGN',(0,0),(-1,-1),'MIDDLE')
-    ]))
+    # Goods row (taller)
+    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
+                              ParagraphStyle('Goods', parent=normal_style, fontSize=7)),
+                   ""]]
+    goods_table = Table(goods_data, colWidths=[total_table_width, 0],
+                        style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                               ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
+    goods_table._argH[0] = 25  # make row taller
     elements.append(goods_table)
 
-    # ===== Currency Section =====
-    currency_data = [[Paragraph("<b>CURRENCY: USD</b>",
-                                ParagraphStyle('Currency', parent=normal_style,
+    # Currency row (taller)
+    currency_data = [["", 
+                      Paragraph("<b>CURRENCY: USD</b>", 
+                                ParagraphStyle('Currency', parent=normal_style, 
                                                fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
-    currency_table = Table(currency_data, colWidths=[total_table_width])
-    currency_table.setStyle(TableStyle([
-        ('BOX',(0,0),(-1,-1),1,colors.black),
-        ('VALIGN',(0,0),(-1,-1),'MIDDLE')
-    ]))
+    currency_table = Table(currency_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
+                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                  ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
+    currency_table._argH[0] = 25  # make row taller
     elements.append(currency_table)
 
     # Product Table
@@ -307,31 +307,15 @@ if uploaded_file is not None:
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
-            form_data = dict(
-                pi_number=pi_number,
-                order_ref=order_ref,
-                buyer_name=buyer_name,
-                brand_name=brand_name,
-                consignee_name=consignee_name,
-                consignee_address=consignee_address,
-                consignee_tel=consignee_tel,
-                payment_term=payment_term,
-                bank_beneficiary=bank_beneficiary,
-                bank_account=bank_account,
-                bank_name=bank_name,
-                bank_address=bank_address,
-                bank_swift=bank_swift,
-                bank_code=bank_code,
-                loading_country=loading_country,
-                port_loading=port_loading,
-                shipment_date=shipment_date,
-                remarks=remarks,
-                goods_desc=goods_desc
-            )
-            pdf_buffer = generate_proforma_invoice(df, form_data)
+            form_data = {"pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
+                         "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
+                         "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
+                         "bank_name":bank_name,"bank_address":bank_address,"bank_swift":bank_swift,"bank_code":bank_code,
+                         "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
+                         "remarks":remarks,"goods_desc":goods_desc}
 
-            st.success("✅ PDF Generated Successfully!")
-            st.download_button("⬇️ Download PDF", pdf_buffer, file_name="Proforma_Invoice.pdf", mime="application/pdf")
+            pdf_buffer = generate_proforma_invoice(df, form_data)
+            st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
 
     except Exception as e:
-        st.error(f"❌ Error processing file: {e}")
+        st.error(f"❌ Error: {e}")
