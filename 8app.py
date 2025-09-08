@@ -126,7 +126,19 @@ def generate_proforma_invoice(df, form_data):
 
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
-                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
+                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6,
+                                 borderWidth=1, borderColor=colors.black, borderPadding=6)
+    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
+                                  fontName='Helvetica-Bold', alignment=TA_LEFT, 
+                                  spaceBefore=0, spaceAfter=0, leading=8)
+    normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
+                                  spaceBefore=0, spaceAfter=0, leading=7)
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
+                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=0,
+                                 borderWidth=1, borderColor=colors.black, borderPadding=6,
+                                 leftIndent=24, rightIndent=24)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
                                   spaceBefore=0, spaceAfter=0, leading=8)
