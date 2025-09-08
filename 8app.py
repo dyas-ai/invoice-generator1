@@ -121,12 +121,13 @@ def generate_proforma_invoice(df, form_data):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=24, bottomMargin=24,
-                            leftMargin=34.5, rightMargin=34.5)
+                            leftMargin=34.6, rightMargin=34.6)
     elements = []
 
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=12,
-                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6)
+                                 alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=6,
+                                 borderWidth=1, borderColor=colors.black, borderPadding=6)
     header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=7,
                                   fontName='Helvetica-Bold', alignment=TA_LEFT, 
                                   spaceBefore=0, spaceAfter=0, leading=8)
