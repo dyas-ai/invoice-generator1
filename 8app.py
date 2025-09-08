@@ -161,21 +161,22 @@ def generate_proforma_invoice(df, form_data):
     bank_header_style = ParagraphStyle('BankHeader', parent=header_style, 
                                        spaceAfter=0, spaceBefore=0, leading=6)
     
-    # Combine Bank Details with Beneficiary to eliminate gap
-    bank_details_combined = f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}"
+    # Combine ALL Bank Details into one paragraph with consistent spacing
+    bank_details_all = f"""<b>Bank Details</b><br/>
+<b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/>
+<b>Account No</b> :- {form_data['bank_account']}<br/>
+<b>BANK'S NAME</b> :- {form_data['bank_name']}<br/>
+<b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/>
+<b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/>
+<b>BANK CODE</b> :- {form_data['bank_code']}"""
     
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph(bank_details_combined, ParagraphStyle('BankCombined', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=8))],
-        [Paragraph(form_data['consignee_tel'], normal_style), ""],
-        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
-        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
-        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
-        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
-        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
+         Paragraph(bank_details_all, ParagraphStyle('BankAllDetails', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=9))],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
