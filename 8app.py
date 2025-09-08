@@ -152,7 +152,9 @@ def generate_proforma_invoice(df, form_data):
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('LINEBELOW',(1,0),(1,0),1,colors.black),
-                                 ('VALIGN',(0,1),(1,1),'TOP')]))
+                                 ('VALIGN',(0,1),(1,1),'TOP'),
+                                 ('BOTTOMPADDING',(0,1),(0,1),6),    # Only left cell of row 2 (SAR APPARELS details)
+                                 ('BOTTOMPADDING',(1,1),(1,1),6)]))
 
     # Consignee section
     consignee_data = [
