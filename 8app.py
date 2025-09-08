@@ -190,7 +190,7 @@ def generate_proforma_invoice(df, form_data):
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
     combined_data = [
-        # Row 1: Description of goods (spans full width)
+        # Row 1: Description of goods (left), empty right
         [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
                    ParagraphStyle('Goods', parent=normal_style, fontSize=7)), ""],
         # Row 2: Empty left, Currency on right
@@ -199,11 +199,11 @@ def generate_proforma_invoice(df, form_data):
                                       fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
     ]
     
-    combined_table = Table(combined_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
+    combined_table = Table(combined_data, colWidths=header_col_widths,  # 50/50 split like sections above
                            style=[
                                # Outer border only - NO line between rows
                                ('BOX',(0,0),(-1,-1),1,colors.black),
-                               ('LINEBEFORE',(1,0),(1,-1),0.5,colors.black),  # Vertical line between columns
+                               ('LINEBEFORE',(1,0),(1,-1),1,colors.black),  # Vertical line between columns (same thickness as above)
                                ('VALIGN',(0,0),(-1,-1),'MIDDLE')
                            ])
     # Set both row heights to 25 units each
