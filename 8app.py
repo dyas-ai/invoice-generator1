@@ -320,7 +320,8 @@ def generate_proforma_invoice(df, form_data):
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                    ('VALIGN',(0,-1),(-1,-1),'BOTTOM'),
                                    ('SPAN',(0,0),(-1,0)),
-                                   ('BOTTOMPADDING',(0,2),(0,2),15)])  # Add bottom padding to stamp row
+                                   ('BOTTOMPADDING',(0,2),(0,2),15),  # Add bottom padding to stamp row
+                                   ('LEFTPADDING',(0,2),(0,2),30)])   # Add left padding to move stamp right
     elements.append(signature_table)
 
     doc.build(elements)
