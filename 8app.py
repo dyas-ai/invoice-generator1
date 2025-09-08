@@ -195,7 +195,7 @@ def generate_proforma_invoice(df, form_data):
                                  ('VALIGN',(0,0),(-1,-1),'TOP'),
                                  ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
                                  ('BOTTOMPADDING',(0,0),(-1,-1),1), # Minimal bottom padding
-                                 ('BOTTOMPADDING',(0,2),(0,2),3)])  # Extra space below Agreed Shipment Date
+                                 ('BOTTOMPADDING',(0,2),(0,2),6)])  # Extra space below Agreed Shipment Date
     elements.append(shipping_table)
 
     # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
