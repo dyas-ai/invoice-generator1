@@ -187,8 +187,8 @@ def generate_proforma_invoice(df, form_data):
                                  ('BOTTOMPADDING',(1,1),(1,1),50)]))  # Increased bottom padding to 50 points
 
     # Consignee section - ULTRA TIGHT SPACING
-    # Create compact styles for bank details
-    bank_style = ParagraphStyle('BankCompact', parent=normal_style, fontSize=7, fontName='Helvetica', 
+    # Create compact styles for bank details with explicit plain text
+    bank_style = ParagraphStyle('BankCompact', parent=styles['Normal'], fontSize=7, fontName='Helvetica', 
                                leading=8, spaceAfter=0, spaceBefore=0, leftIndent=0, rightIndent=0)
     
     consignee_data = [
