@@ -173,8 +173,8 @@ def generate_proforma_invoice(df, form_data):
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('LINEBELOW',(1,0),(1,0),1,colors.black),
                                  ('VALIGN',(0,1),(1,1),'TOP'),
-                                 ('BOTTOMPADDING',(0,1),(0,1),18),    # Increased bottom padding for supplier details
-                                 ('BOTTOMPADDING',(1,1),(1,1),18)]))  # Increased bottom padding for order reference
+                                 ('BOTTOMPADDING',(0,1),(0,1),20),    # Increased bottom padding to 20 points
+                                 ('BOTTOMPADDING',(1,1),(1,1),20)]))  # Increased bottom padding to 20 points
 
     # Consignee section - ULTRA TIGHT SPACING
     # Create compact styles for bank details
