@@ -188,13 +188,26 @@ def generate_proforma_invoice(df, form_data):
                                  ('TOPPADDING',(0,1),(-1,2),1),
                                  ('BOTTOMPADDING',(0,1),(-1,2),1)]))
 
-    # Goods + Currency
-    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", normal_style),
-                   Paragraph("<b>CURRENCY: USD</b>", ParagraphStyle('Right', parent=normal_style,
-                                                                    alignment=TA_RIGHT,
-                                                                    fontName='Helvetica-Bold'))]]
-    elements.append(Table(goods_data, colWidths=[total_table_width*0.75,total_table_width*0.25],
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black)]))
+    # Goods row (taller)
+    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
+                              ParagraphStyle('Goods', parent=normal_style, fontSize=7)),
+                   ""]]
+    goods_table = Table(goods_data, colWidths=[total_table_width, 0],
+                        style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                               ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
+    goods_table._argH[0] = 25  # make row taller
+    elements.append(goods_table)
+
+    # Currency row (taller)
+    currency_data = [["", 
+                      Paragraph("<b>CURRENCY: USD</b>", 
+                                ParagraphStyle('Currency', parent=normal_style, 
+                                               fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
+    currency_table = Table(currency_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
+                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                  ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
+    currency_table._argH[0] = 25  # make row taller
+    elements.append(currency_table)
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
