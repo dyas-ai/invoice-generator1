@@ -175,9 +175,6 @@ def generate_proforma_invoice(df, form_data):
                                  ('VALIGN',(0,1),(1,1),'TOP'),
                                  ('BOTTOMPADDING',(0,1),(0,1),18),    # Increased bottom padding for supplier details
                                  ('BOTTOMPADDING',(1,1),(1,1),18)]))  # Increased bottom padding for order reference
-    
-    # Add extra spacing after supplier section
-    elements.append(Spacer(1, 6))
 
     # Consignee section - ULTRA TIGHT SPACING
     # Create compact styles for bank details
