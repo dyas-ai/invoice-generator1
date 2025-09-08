@@ -156,33 +156,30 @@ def generate_proforma_invoice(df, form_data):
                                  ('BOTTOMPADDING',(0,1),(0,1),6),
                                  ('BOTTOMPADDING',(1,1),(1,1),6)]))
 
-    # Consignee section - FIXED SPACING
+    # Consignee section - ULTRA TIGHT SPACING
+    # Create compact styles for bank details
+    bank_style = ParagraphStyle('BankCompact', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', 
+                               leading=8, spaceAfter=0, spaceBefore=0, leftIndent=0, rightIndent=0)
+    
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph(f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}", 
-                   ParagraphStyle('BankHeader', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=8, spaceAfter=0, spaceBefore=0))],
-        [Paragraph(form_data['consignee_tel'], normal_style), ""],
-        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
-        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
-        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
-        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
-        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
+         Paragraph(f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/><b>Account No</b> :- {form_data['bank_account']}<br/><b>BANK'S NAME</b> :- {form_data['bank_name']}<br/><b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/><b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/><b>BANK CODE</b> :- {form_data['bank_code']}", 
+                   bank_style)],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                    ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                    ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                   # Reduce spacing around bank details row
-                                   ('TOPPADDING',(1,2),(1,2),0),     # Zero top padding for bank details
-                                   ('BOTTOMPADDING',(1,2),(1,2),2),  # Minimal bottom padding for bank details
-                                   ('TOPPADDING',(1,4),(1,8),0),     # Zero top padding for subsequent bank rows
-                                   ('BOTTOMPADDING',(1,4),(1,8),1)]) # Minimal bottom padding for bank rows
+                                   # Ultra tight spacing
+                                   ('TOPPADDING',(0,0),(-1,-1),0),    # Zero top padding for all cells
+                                   ('BOTTOMPADDING',(0,0),(-1,-1),1), # Minimal bottom padding for all cells
+                                   ('LEFTPADDING',(0,0),(-1,-1),2),   # Minimal left padding
+                                   ('RIGHTPADDING',(0,0),(-1,-1),2)]) # Minimal right padding
 
-    # Set specific row height for the bank details row to be more compact
-    consignee_table._argH[2] = 16  # Reduce the height of row containing "Bank Details"
     elements.append(consignee_table)
 
     # Shipping section
