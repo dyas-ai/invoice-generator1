@@ -152,11 +152,11 @@ def generate_proforma_invoice(df, form_data):
         left_section_width * 0.35,  # ITEM DESCRIPTION (35% of left)  
         left_section_width * 0.25,  # FABRIC TYPE (25% of left)
         left_section_width * 0.2,   # H.S NO (20% of left)
-        right_section_width * 0.22, # COMPOSITION (22% of right) - reduced from 30%
-        right_section_width * 0.15, # COUNTRY OF ORIGIN (15% of right) - reduced from 20%
+        right_section_width * 0.22, # COMPOSITION (22% of right)
+        right_section_width * 0.18, # COUNTRY OF ORIGIN (18% of right) - increased from 15%
         right_section_width * 0.15, # QTY (15% of right)
         right_section_width * 0.2,  # UNIT PRICE (20% of right)
-        right_section_width * 0.28  # AMOUNT (28% of right) - increased from 15%
+        right_section_width * 0.25  # AMOUNT (25% of right) - reduced from 28%
     ]
     header_col_widths = [total_table_width/2, total_table_width/2]
 
