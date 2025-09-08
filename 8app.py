@@ -175,11 +175,14 @@ def generate_proforma_invoice(df, form_data):
         ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", normal_style)],
         ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", normal_style)]
     ]
-    elements.append(Table(consignee_data, colWidths=header_col_widths,
-                          style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                 ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                 ('BOTTOMPADDING',(1,2),(1,2),0),    # Zero bottom padding for "Bank Details" cell
-                                 ('TOPPADDING',(1,4),(1,4),0)]))
+    consignee_table = Table(consignee_data, colWidths=header_col_widths,
+                            style=[('BOX',(0,0),(-1,-1),1,colors.black),
+                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
+                                   ('BOTTOMPADDING',(1,2),(1,2),0),    # Zero bottom padding for "Bank Details" cell
+                                   ('TOPPADDING',(1,4),(1,4),0)])
+    # Manually set the row height for the "Bank Details" row (row index 2) to be smaller
+    consignee_table._argH[2] = 12  # Reduce row height significantly
+    elements.append(consignee_table)
 
     # Shipping section
     shipping_data = [
