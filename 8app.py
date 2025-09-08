@@ -166,7 +166,7 @@ def generate_proforma_invoice(df, form_data):
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(f"{form_data['consignee_name']}<br/>{form_data['consignee_address']}<br/>{form_data['consignee_tel']}", 
                    ParagraphStyle('ConsigneeCompact', parent=normal_style, leading=8, spaceAfter=0, spaceBefore=0)),
-         Paragraph(f"<br/><br/><br/><br/><br/><br/><b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/><b>Account No</b> :- {form_data['bank_account']}<br/><b>BANK'S NAME</b> :- {form_data['bank_name']}<br/><b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/><b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/><b>BANK CODE</b> :- {form_data['bank_code']}", 
+         Paragraph(f"<br/><br/><br/><br/><b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/><b>Account No</b> :- {form_data['bank_account']}<br/><b>BANK'S NAME</b> :- {form_data['bank_name']}<br/><b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/><b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/><b>BANK CODE</b> :- {form_data['bank_code']}", 
                    bank_style)]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
