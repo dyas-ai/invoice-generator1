@@ -196,11 +196,11 @@ def generate_proforma_invoice(df, form_data):
                                  ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
                                  ('BOTTOMPADDING',(0,0),(-1,-1),1)]) # Minimal bottom padding
     
-    # Set specific row heights to reduce spacing - reduced by 6 units
-    shipping_table._argH[0] = 12  # Loading Country row (was 18, now 12)
-    shipping_table._argH[1] = 12  # Port of Loading row (was 18, now 12)
-    shipping_table._argH[2] = 12  # Agreed Shipment Date row (was 18, now 12)
-    shipping_table._argH[3] = 14  # Remarks row (was 20, now 14)
+    # Set specific row heights to reduce spacing - reduced by 9 units total
+    shipping_table._argH[0] = 9   # Loading Country row (was 18, now 9)
+    shipping_table._argH[1] = 9   # Port of Loading row (was 18, now 9)
+    shipping_table._argH[2] = 9   # Agreed Shipment Date row (was 18, now 9)
+    shipping_table._argH[3] = 11  # Remarks row (was 20, now 11)
     
     elements.append(shipping_table)
 
