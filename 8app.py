@@ -229,7 +229,7 @@ def generate_proforma_invoice(df, form_data):
 
     # Product Table with additional empty rows
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
-               "COMPOSITION OF\nMATERIAL","COUNTRY\nOF\nORIGIN","QTY","UNIT PRICE\nFOB","AMOUNT"]
+               "COMPOSITION OF\nMATERIAL","COUNTRY OF\nORIGIN","QTY","UNIT PRICE\nFOB","AMOUNT"]
     table_data = [headers]
 
     total_qty,total_amount = 0,0.0
