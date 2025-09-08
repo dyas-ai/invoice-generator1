@@ -157,12 +157,16 @@ def generate_proforma_invoice(df, form_data):
                                  ('BOTTOMPADDING',(1,1),(1,1),6)]))
 
     # Consignee section
+    # Create a style for Bank Details with minimal spacing after
+    bank_header_style = ParagraphStyle('BankHeader', parent=header_style, 
+                                       spaceAfter=2, spaceBefore=0)
+    
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph("<b>Bank Details</b>", header_style)],
+         Paragraph("<b>Bank Details</b>", bank_header_style)],  # Use new style with minimal spacing
         [Paragraph(form_data['consignee_tel'], normal_style), ""],
         ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
         ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
