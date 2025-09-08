@@ -161,14 +161,16 @@ def generate_proforma_invoice(df, form_data):
     bank_header_style = ParagraphStyle('BankHeader', parent=header_style, 
                                        spaceAfter=0, spaceBefore=0, leading=6)
     
+    # Combine Bank Details with Beneficiary to eliminate gap
+    bank_details_combined = f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}"
+    
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph("<b>Bank Details</b>", bank_header_style)],  # Use new style with zero spacing
+         Paragraph(bank_details_combined, ParagraphStyle('BankCombined', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=8))],
         [Paragraph(form_data['consignee_tel'], normal_style), ""],
-        ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", normal_style)],
         ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", normal_style)],
         ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", normal_style)],
         ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", normal_style)],
