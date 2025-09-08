@@ -161,22 +161,24 @@ def generate_proforma_invoice(df, form_data):
     bank_header_style = ParagraphStyle('BankHeader', parent=header_style, 
                                        spaceAfter=0, spaceBefore=0, leading=6)
     
-    # Combine ALL Bank Details into one paragraph with consistent spacing
-    bank_details_all = f"""<b>Bank Details</b><br/>
-<b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/>
-<b>Account No</b> :- {form_data['bank_account']}<br/>
-<b>BANK'S NAME</b> :- {form_data['bank_name']}<br/>
-<b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/>
-<b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/>
-<b>BANK CODE</b> :- {form_data['bank_code']}"""
+    # Create a tighter style for all bank details
+    bank_detail_style = ParagraphStyle('BankDetail', parent=normal_style, 
+                                       fontSize=7, fontName='Helvetica-Bold', 
+                                       spaceBefore=1, spaceAfter=1, leading=7)
     
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(form_data['consignee_name'], normal_style), ""],
         [Paragraph(form_data['consignee_address'], normal_style),
-         Paragraph(bank_details_all, ParagraphStyle('BankAllDetails', parent=normal_style, fontSize=7, fontName='Helvetica-Bold', leading=9))],
-        [Paragraph(form_data['consignee_tel'], normal_style), ""]
+         Paragraph("<b>Bank Details</b>", bank_detail_style)],
+        [Paragraph(form_data['consignee_tel'], normal_style), ""],
+        ["", Paragraph(f"<b>Beneficiary</b> :- {form_data['bank_beneficiary']}", bank_detail_style)],
+        ["", Paragraph(f"<b>Account No</b> :- {form_data['bank_account']}", bank_detail_style)],
+        ["", Paragraph(f"<b>BANK'S NAME</b> :- {form_data['bank_name']}", bank_detail_style)],
+        ["", Paragraph(f"<b>BANK ADDRESS</b> :- {form_data['bank_address']}", bank_detail_style)],
+        ["", Paragraph(f"<b>SWIFT CODE</b> :- {form_data['bank_swift']}", bank_detail_style)],
+        ["", Paragraph(f"<b>BANK CODE</b> :- {form_data['bank_code']}", bank_detail_style)]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
