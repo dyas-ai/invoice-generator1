@@ -180,11 +180,15 @@ def generate_proforma_invoice(df, form_data):
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
-                                   ('BOTTOMPADDING',(1,2),(1,2),0),    # Zero bottom padding for "Bank Details" cell
-                                   ('TOPPADDING',(1,4),(1,4),0)])
-    # Manually set the row height for the "Bank Details" row (row index 2) to be smaller
-    consignee_table._argH[2] = 12  # Reduce row height significantly
+                                   ('LINEBEFORE',(1,0),(1,-1),1,colors.black)])
+    # Set minimal row heights for all bank detail rows to maintain tight spacing
+    consignee_table._argH[2] = 10  # "Bank Details" row
+    consignee_table._argH[4] = 10  # "Beneficiary" row  
+    consignee_table._argH[5] = 10  # "Account No" row
+    consignee_table._argH[6] = 10  # "Bank Name" row
+    consignee_table._argH[7] = 10  # "Bank Address" row
+    consignee_table._argH[8] = 10  # "Swift Code" row
+    consignee_table._argH[9] = 10  # "Bank Code" row
     elements.append(consignee_table)
 
     # Shipping section
