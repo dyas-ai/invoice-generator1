@@ -188,26 +188,28 @@ def generate_proforma_invoice(df, form_data):
                                  ('TOPPADDING',(0,1),(-1,2),1),
                                  ('BOTTOMPADDING',(0,1),(-1,2),1)]))
 
-    # Goods row (taller)
-    goods_data = [[Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
-                              ParagraphStyle('Goods', parent=normal_style, fontSize=7)),
-                   ""]]
-    goods_table = Table(goods_data, colWidths=[total_table_width, 0],
-                        style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                               ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
-    goods_table._argH[0] = 25  # make row taller
-    elements.append(goods_table)
-
-    # Currency row (taller)
-    currency_data = [["", 
-                      Paragraph("<b>CURRENCY: USD</b>", 
-                                ParagraphStyle('Currency', parent=normal_style, 
-                                               fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]]
-    currency_table = Table(currency_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
-                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
-                                  ('VALIGN',(0,0),(-1,-1),'MIDDLE')])
-    currency_table._argH[0] = 25  # make row taller
-    elements.append(currency_table)
+    # Combined Goods and Currency block (NO LINE BETWEEN ROWS)
+    combined_data = [
+        # Row 1: Description of goods (spans full width)
+        [Paragraph(f"<b>Description of goods:</b> {form_data['goods_desc']}", 
+                   ParagraphStyle('Goods', parent=normal_style, fontSize=7)), ""],
+        # Row 2: Empty left, Currency on right
+        ["", Paragraph("<b>CURRENCY: USD</b>", 
+                       ParagraphStyle('Currency', parent=normal_style, 
+                                      fontSize=8, alignment=TA_RIGHT, fontName='Helvetica-Bold'))]
+    ]
+    
+    combined_table = Table(combined_data, colWidths=[total_table_width*0.75, total_table_width*0.25],
+                           style=[
+                               # Outer border only - NO line between rows
+                               ('BOX',(0,0),(-1,-1),1,colors.black),
+                               ('LINEBEFORE',(1,0),(1,-1),0.5,colors.black),  # Vertical line between columns
+                               ('VALIGN',(0,0),(-1,-1),'MIDDLE')
+                           ])
+    # Set both row heights to 25 units each
+    combined_table._argH[0] = 25  # Row 1 height
+    combined_table._argH[1] = 25  # Row 2 height
+    elements.append(combined_table)
 
     # Product Table
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
