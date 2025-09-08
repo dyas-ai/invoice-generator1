@@ -133,18 +133,7 @@ def generate_proforma_invoice(df, form_data):
     normal_style = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=6, alignment=TA_LEFT,
                                   spaceBefore=0, spaceAfter=0, leading=7)
 
-    # Title in a box
-    title_table = Table([["PROFORMA INVOICE"]], colWidths=[total_table_width])
-    title_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1, colors.black),
-        ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 12),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6)
-    ]))
-    elements.append(title_table)
+    elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
     # width setup - adjust product table to align with header sections
     # First calculate the total table width from original product columns to maintain consistency
