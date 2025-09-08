@@ -164,11 +164,10 @@ def generate_proforma_invoice(df, form_data):
     consignee_data = [
         [Paragraph("<b>Consignee:</b>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
-        [Paragraph(form_data['consignee_name'], normal_style), ""],
-        [Paragraph(form_data['consignee_address'], normal_style),
+        [Paragraph(f"{form_data['consignee_name']}<br/>{form_data['consignee_address']}<br/>{form_data['consignee_tel']}", 
+                   ParagraphStyle('ConsigneeCompact', parent=normal_style, leading=8, spaceAfter=0, spaceBefore=0)),
          Paragraph(f"<b>Bank Details</b><br/><b>Beneficiary</b> :- {form_data['bank_beneficiary']}<br/><b>Account No</b> :- {form_data['bank_account']}<br/><b>BANK'S NAME</b> :- {form_data['bank_name']}<br/><b>BANK ADDRESS</b> :- {form_data['bank_address']}<br/><b>SWIFT CODE</b> :- {form_data['bank_swift']}<br/><b>BANK CODE</b> :- {form_data['bank_code']}", 
-                   bank_style)],
-        [Paragraph(form_data['consignee_tel'], normal_style), ""]
+                   bank_style)]
     ]
     consignee_table = Table(consignee_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
