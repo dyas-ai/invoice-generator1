@@ -227,7 +227,7 @@ def generate_proforma_invoice(df, form_data):
     combined_table._argH[1] = 25  # Row 2 height
     elements.append(combined_table)
 
-    # Product Table
+    # Product Table with additional empty rows
     headers = ["STYLE NO.","ITEM DESCRIPTION","FABRIC TYPE\nKNITTED / WOVEN","H.S NO\n(8digit)",
                "COMPOSITION OF\nMATERIAL","COUNTRY\nOF\nORIGIN","QTY","UNIT\nPRICE\nFOB","AMOUNT"]
     table_data = [headers]
@@ -241,6 +241,10 @@ def generate_proforma_invoice(df, form_data):
                            str(row.get("FABRIC TYPE","")),str(row.get("HS CODE","")),
                            str(row.get("COMPOSITION","")),str(row.get("COUNTRY OF ORIGIN","")),
                            f"{qty:,}",f"{price:.2f}",f"{amt:.2f}"])
+
+    # Add 5 empty rows for spacing
+    for i in range(5):
+        table_data.append(["","","","","","","","",""])
 
     # TOTAL row
     table_data.append(
