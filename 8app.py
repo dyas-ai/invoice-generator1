@@ -135,10 +135,24 @@ def generate_proforma_invoice(df, form_data):
 
     elements.append(Paragraph("PROFORMA INVOICE", title_style))
 
-    # width setup
-    product_col_widths = [0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch,
-                          1.1*inch, 0.7*inch, 0.5*inch, 0.6*inch, 0.8*inch]
-    total_table_width = sum(product_col_widths)
+    # width setup - adjust product table to align with header sections
+    # Calculate widths so the line between H.S NO and COMPOSITION aligns with center divider above
+    left_section_width = total_table_width/2  # This should align with the center line above
+    right_section_width = total_table_width/2
+    
+    # Distribute left section width among first 4 columns (STYLE NO, ITEM DESC, FABRIC TYPE, H.S NO)
+    # Distribute right section width among last 5 columns (COMPOSITION, COUNTRY, QTY, UNIT PRICE, AMOUNT)
+    product_col_widths = [
+        left_section_width * 0.2,   # STYLE NO (20% of left)
+        left_section_width * 0.35,  # ITEM DESCRIPTION (35% of left)  
+        left_section_width * 0.25,  # FABRIC TYPE (25% of left)
+        left_section_width * 0.2,   # H.S NO (20% of left)
+        right_section_width * 0.3,  # COMPOSITION (30% of right)
+        right_section_width * 0.2,  # COUNTRY OF ORIGIN (20% of right)
+        right_section_width * 0.15, # QTY (15% of right)
+        right_section_width * 0.2,  # UNIT PRICE (20% of right)
+        right_section_width * 0.15  # AMOUNT (15% of right)
+    ]
     header_col_widths = [total_table_width/2, total_table_width/2]
 
     # Supplier section
