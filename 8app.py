@@ -169,6 +169,17 @@ def generate_proforma_invoice(df, form_data):
     ]
     header_col_widths = [total_table_width/2, total_table_width/2]
 
+    # Create title in a table to match width of other sections
+    title_table = Table([[Paragraph("PROFORMA INVOICE", title_style)]], 
+                        colWidths=[total_table_width])
+    title_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6)
+    ]))
+    elements.append(title_table)
+
     # Supplier section
     supplier_data = [
         [Paragraph("<b>Supplier Name:</b>", header_style),
