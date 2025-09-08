@@ -312,13 +312,15 @@ def generate_proforma_invoice(df, form_data):
         [Paragraph(total_words_str, ParagraphStyle('TotalWords', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)), ""],
         [Paragraph("Terms & Conditions (If Any)", normal_style), ""],
         [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=2*inch, height=1*inch), ""],
+        ["", ""],  # Empty row for spacing
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                    ('VALIGN',(0,-1),(-1,-1),'BOTTOM'),
-                                   ('SPAN',(0,0),(-1,0))])
+                                   ('SPAN',(0,0),(-1,0)),
+                                   ('BOTTOMPADDING',(0,2),(0,2),15)])  # Add bottom padding to stamp row
     elements.append(signature_table)
 
     doc.build(elements)
