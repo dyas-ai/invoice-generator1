@@ -362,14 +362,14 @@ if uploaded_file is not None:
             key="data_editor"
         )
         
-        # Update session state with edited data
-        st.session_state.edited_df = edited_df
-        
-        # Recalculate amounts when QTY or UNIT PRICE changes
-        st.session_state.edited_df["AMOUNT"] = (
-            pd.to_numeric(st.session_state.edited_df["QTY"], errors="coerce").fillna(0) * 
-            pd.to_numeric(st.session_state.edited_df["UNIT PRICE"], errors="coerce").fillna(0)
-        )
+        # Only update session state if there are actual changes
+        if not edited_df.equals(st.session_state.edited_df):
+            st.session_state.edited_df = edited_df.copy()
+            # Recalculate amounts when QTY or UNIT PRICE changes
+            st.session_state.edited_df["AMOUNT"] = (
+                pd.to_numeric(st.session_state.edited_df["QTY"], errors="coerce").fillna(0) * 
+                pd.to_numeric(st.session_state.edited_df["UNIT PRICE"], errors="coerce").fillna(0)
+            )
         
         # Show summary statistics
         total_qty = st.session_state.edited_df["QTY"].sum()
