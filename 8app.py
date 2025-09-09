@@ -300,6 +300,7 @@ def generate_proforma_invoice(df, form_data):
         ('SPAN',(0,-1),(5,-1)),
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
         ('SPAN',(6,-1),(7,-1)),
+        ('FONTNAME',(0,-1),(-1,-1),'Helvetica-Bold'),  # Make TOTAL row bold
     ]))
     elements.append(product_table)
 
