@@ -345,6 +345,7 @@ if uploaded_file is not None:
         df = preprocess_excel_flexible_auto(uploaded_file)
         st.write("### Preview of Processed Data"); st.dataframe(df)
 
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
@@ -408,7 +409,7 @@ if uploaded_file is not None:
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
 
-            pdf_buffer = generate_proforma_invoice(edited_df, form_data)  # Use edited_df
+            pdf_buffer = generate_proforma_invoice(edited_df, form_data)
             st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
 
     except Exception as e:
