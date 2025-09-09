@@ -343,40 +343,55 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        st.write("### Preview of Processed Data"); st.dataframe(df)
-
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
-if uploaded_file is not None:
-    try:
-        df = preprocess_excel_flexible_auto(uploaded_file)
         st.write("### Preview of Processed Data")
         
-        # Make the dataframe editable
+        # Initialize session state for edited data if not exists
+        if 'edited_df' not in st.session_state:
+            st.session_state.edited_df = df.copy()
+        
+        # Create columns for buttons
+        col1, col2, col3 = st.columns([1, 1, 4])
+        
+        with col1:
+            if st.button("Add Row"):
+                # Create a new empty row with same structure
+                new_row = {col: "" if col not in ["QTY", "UNIT PRICE", "AMOUNT"] else 0 
+                          for col in st.session_state.edited_df.columns}
+                new_row_df = pd.DataFrame([new_row])
+                st.session_state.edited_df = pd.concat([st.session_state.edited_df, new_row_df], ignore_index=True)
+                st.rerun()
+        
+        with col2:
+            if st.button("Reset to Original"):
+                st.session_state.edited_df = df.copy()
+                st.rerun()
+        
+        # Editable data editor
         edited_df = st.data_editor(
-            df,
-            num_rows="dynamic",  # Allow adding/removing rows
+            st.session_state.edited_df,
             use_container_width=True,
+            num_rows="dynamic",  # Allow adding/deleting rows
             column_config={
-                "STYLE NO": st.column_config.TextColumn("Style No", required=True),
-                "ITEM DESCRIPTION": st.column_config.TextColumn("Item Description"),
-                "FABRIC TYPE": st.column_config.TextColumn("Fabric Type"),
-                "HS CODE": st.column_config.TextColumn("HS Code"),
-                "COMPOSITION": st.column_config.TextColumn("Composition"),
-                "COUNTRY OF ORIGIN": st.column_config.TextColumn("Country of Origin"),
-                "QTY": st.column_config.NumberColumn("Quantity", min_value=0, format="%d"),
-                "UNIT PRICE": st.column_config.NumberColumn("Unit Price", min_value=0.0, format="%.2f"),
-                "AMOUNT": st.column_config.NumberColumn("Amount", min_value=0.0, format="%.2f")
+                "QTY": st.column_config.NumberColumn("QTY", format="%d"),
+                "UNIT PRICE": st.column_config.NumberColumn("UNIT PRICE", format="%.2f"),
+                "AMOUNT": st.column_config.NumberColumn("AMOUNT", format="%.2f")
             },
             key="data_editor"
         )
         
-        # Recalculate amounts based on edited quantities and unit prices
-        edited_df = edited_df.copy()  # Create a copy to avoid modification warnings
-        edited_df["AMOUNT"] = edited_df["QTY"] * edited_df["UNIT PRICE"]
+        # Update session state with edited data
+        st.session_state.edited_df = edited_df
         
-        # Show the final data that will be used for PDF generation
-        st.write("### Final Data (will be used for PDF)")
-        st.dataframe(edited_df, use_container_width=True)
+        # Recalculate amounts when QTY or UNIT PRICE changes
+        st.session_state.edited_df["AMOUNT"] = (
+            pd.to_numeric(st.session_state.edited_df["QTY"], errors="coerce").fillna(0) * 
+            pd.to_numeric(st.session_state.edited_df["UNIT PRICE"], errors="coerce").fillna(0)
+        )
+        
+        # Show summary statistics
+        total_qty = st.session_state.edited_df["QTY"].sum()
+        total_amount = st.session_state.edited_df["AMOUNT"].sum()
+        st.write(f"**Total Quantity:** {total_qty:,} | **Total Amount:** ${total_amount:,.2f}")
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
@@ -409,7 +424,8 @@ if uploaded_file is not None:
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
 
-            pdf_buffer = generate_proforma_invoice(edited_df, form_data)
+            # Use the edited dataframe for PDF generation
+            pdf_buffer = generate_proforma_invoice(st.session_state.edited_df, form_data)
             st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
 
     except Exception as e:
