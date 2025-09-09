@@ -345,6 +345,38 @@ if uploaded_file is not None:
         df = preprocess_excel_flexible_auto(uploaded_file)
         st.write("### Preview of Processed Data"); st.dataframe(df)
 
+if uploaded_file is not None:
+    try:
+        df = preprocess_excel_flexible_auto(uploaded_file)
+        st.write("### Preview of Processed Data")
+        
+        # Make the dataframe editable
+        edited_df = st.data_editor(
+            df,
+            num_rows="dynamic",  # Allow adding/removing rows
+            use_container_width=True,
+            column_config={
+                "STYLE NO": st.column_config.TextColumn("Style No", required=True),
+                "ITEM DESCRIPTION": st.column_config.TextColumn("Item Description"),
+                "FABRIC TYPE": st.column_config.TextColumn("Fabric Type"),
+                "HS CODE": st.column_config.TextColumn("HS Code"),
+                "COMPOSITION": st.column_config.TextColumn("Composition"),
+                "COUNTRY OF ORIGIN": st.column_config.TextColumn("Country of Origin"),
+                "QTY": st.column_config.NumberColumn("Quantity", min_value=0, format="%d"),
+                "UNIT PRICE": st.column_config.NumberColumn("Unit Price", min_value=0.0, format="%.2f"),
+                "AMOUNT": st.column_config.NumberColumn("Amount", min_value=0.0, format="%.2f")
+            },
+            key="data_editor"
+        )
+        
+        # Recalculate amounts based on edited quantities and unit prices
+        edited_df = edited_df.copy()  # Create a copy to avoid modification warnings
+        edited_df["AMOUNT"] = edited_df["QTY"] * edited_df["UNIT PRICE"]
+        
+        # Show the final data that will be used for PDF generation
+        st.write("### Final Data (will be used for PDF)")
+        st.dataframe(edited_df, use_container_width=True)
+
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
             pi_number = st.text_input("PI No. & Date", "SAR/LG/XXXX Dt. 04/09/2025")
@@ -376,7 +408,7 @@ if uploaded_file is not None:
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
 
-            pdf_buffer = generate_proforma_invoice(edited_df, form_data)  # Use edited_df instead of df
+            pdf_buffer = generate_proforma_invoice(edited_df, form_data)  # Use edited_df
             st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
 
     except Exception as e:
