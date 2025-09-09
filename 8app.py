@@ -223,8 +223,8 @@ def generate_proforma_invoice(df, form_data):
                           style=[('BOX',(0,0),(-1,-1),1,colors.black),
                                  ('LINEBEFORE',(1,0),(1,-1),1,colors.black),
                                  ('VALIGN',(0,0),(-1,-1),'TOP'),
-                                 ('TOPPADDING',(0,0),(-1,-1),1),    # Minimal top padding
-                                 ('BOTTOMPADDING',(0,0),(-1,-1),1)]) # Minimal bottom padding
+                                 ('TOPPADDING',(0,0),(-1,-1),8),    # Increased top padding
+                                 ('BOTTOMPADDING',(0,0),(-1,-1),8)]) # Increased bottom padding
     
     # Set specific row heights to reduce spacing - reduced by 9 units total
     shipping_table._argH[0] = 9   # Loading Country row (was 18, now 9)
