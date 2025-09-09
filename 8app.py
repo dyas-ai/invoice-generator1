@@ -313,7 +313,7 @@ def generate_proforma_invoice(df, form_data):
         [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=2.4*inch, height=1.2*inch), ""],
         ["", ""],  # Empty row for spacing
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
-         Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
+         Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
     ]
     signature_table = Table(signature_data, colWidths=header_col_widths,
                             style=[('BOX',(0,0),(-1,-1),1,colors.black),
@@ -323,8 +323,7 @@ def generate_proforma_invoice(df, form_data):
                                    ('LEFTPADDING',(0,2),(0,2),30),   # Add left padding to move stamp right
                                    ('TOPPADDING',(0,1),(0,1),0),     # Zero top padding for Terms row
                                    ('BOTTOMPADDING',(0,1),(0,1),0),  # Zero bottom padding for Terms row
-                                   ('TOPPADDING',(0,2),(0,2),40),    # Top padding for e-signature
-                                   ('LEFTPADDING',(1,-1),(1,-1),10)]) # Move RNA Resources text 10 units right
+                                   ('TOPPADDING',(0,2),(0,2),40)])   # Increased top padding to push e-signature down more
     
     # Set specific row heights
     signature_table._argH[1] = 4   # Keep the "Terms & Conditions" row small
