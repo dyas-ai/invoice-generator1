@@ -173,7 +173,7 @@ def generate_proforma_invoice(df, form_data):
 
     # Supplier section
     supplier_data = [
-        [Paragraph("<b>Supplier Name:</b><br/>", header_style),  # Reduced spacing - only one line break
+        [Paragraph("<b>Supplier Name:</b><br/><br/>", header_style),  # Added equal spacing to supplier name
          Paragraph(f"<b>No. & date of PI:</b> {form_data['pi_number']}<br/><br/>", header_style)],  # Keep spacing for PI number
         [Paragraph("<b>SAR APPARELS INDIA PVT.LTD.</b><br/><b>Address:</b> 6, Picaso Bithi, Kolkata - 700017<br/><b>Phone:</b> 9817473373<br/><b>Fax:</b> N.A.", ParagraphStyle('SupplierDetail', parent=header_style, leading=6)),
          Paragraph(f"<b>Landmark order Reference:</b> {form_data['order_ref']}<br/><b>Buyer Name:</b> {form_data['buyer_name']}<br/><b>Brand Name:</b> {form_data['brand_name']}", ParagraphStyle('TopAlign', parent=header_style, alignment=TA_LEFT, spaceBefore=0))],
