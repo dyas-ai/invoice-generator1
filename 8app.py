@@ -349,23 +349,6 @@ if uploaded_file is not None:
         if 'edited_df' not in st.session_state:
             st.session_state.edited_df = df.copy()
         
-        # Create columns for buttons
-        col1, col2, col3 = st.columns([1, 1, 4])
-        
-        with col1:
-            if st.button("Add Row"):
-                # Create a new empty row with same structure
-                new_row = {col: "" if col not in ["QTY", "UNIT PRICE", "AMOUNT"] else 0 
-                          for col in st.session_state.edited_df.columns}
-                new_row_df = pd.DataFrame([new_row])
-                st.session_state.edited_df = pd.concat([st.session_state.edited_df, new_row_df], ignore_index=True)
-                st.rerun()
-        
-        with col2:
-            if st.button("Reset to Original"):
-                st.session_state.edited_df = df.copy()
-                st.rerun()
-        
         # Editable data editor
         edited_df = st.data_editor(
             st.session_state.edited_df,
