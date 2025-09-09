@@ -310,7 +310,7 @@ def generate_proforma_invoice(df, form_data):
     signature_data = [
         [Paragraph(total_words_str, ParagraphStyle('TotalWords', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7, alignment=TA_LEFT)), ""],
         [Paragraph("Terms & Conditions (If Any)", ParagraphStyle('TermsCompact', parent=normal_style, spaceBefore=-10)), ""],
-        [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=3*inch, height=1.5*inch), ""],
+        [Image("https://raw.githubusercontent.com/dyas-ai/invoice-generator1/main/Screenshot%202025-09-06%20163303.png", width=2.4*inch, height=1.2*inch), ""],
         ["", ""],  # Empty row for spacing
         [Paragraph("Signed by …………………….(Affix Stamp here)", normal_style),
          Paragraph("for RNA Resources Group Ltd-Landmark (Babyshop)", normal_style)]
