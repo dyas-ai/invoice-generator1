@@ -349,31 +349,30 @@ if uploaded_file is not None:
         if 'edited_df' not in st.session_state:
             st.session_state.edited_df = df.copy()
         
-        # Editable data editor
+        # Editable data editor - disable on_change to prevent constant re-runs
         edited_df = st.data_editor(
             st.session_state.edited_df,
             use_container_width=True,
-            num_rows="dynamic",  # Allow adding/deleting rows
+            num_rows="dynamic",
             column_config={
                 "QTY": st.column_config.NumberColumn("QTY", format="%d"),
                 "UNIT PRICE": st.column_config.NumberColumn("UNIT PRICE", format="%.2f"),
                 "AMOUNT": st.column_config.NumberColumn("AMOUNT", format="%.2f")
             },
+            disabled=["AMOUNT"],  # Make AMOUNT read-only since it's calculated
             key="data_editor"
         )
         
-        # Only update session state if there are actual changes
-        if not edited_df.equals(st.session_state.edited_df):
-            st.session_state.edited_df = edited_df.copy()
-            # Recalculate amounts when QTY or UNIT PRICE changes
-            st.session_state.edited_df["AMOUNT"] = (
-                pd.to_numeric(st.session_state.edited_df["QTY"], errors="coerce").fillna(0) * 
-                pd.to_numeric(st.session_state.edited_df["UNIT PRICE"], errors="coerce").fillna(0)
-            )
+        # Calculate amounts for the current edited data
+        working_df = edited_df.copy()
+        working_df["AMOUNT"] = (
+            pd.to_numeric(working_df["QTY"], errors="coerce").fillna(0) * 
+            pd.to_numeric(working_df["UNIT PRICE"], errors="coerce").fillna(0)
+        )
         
         # Show summary statistics
-        total_qty = st.session_state.edited_df["QTY"].sum()
-        total_amount = st.session_state.edited_df["AMOUNT"].sum()
+        total_qty = working_df["QTY"].sum()
+        total_amount = working_df["AMOUNT"].sum()
         st.write(f"**Total Quantity:** {total_qty:,} | **Total Amount:** ${total_amount:,.2f}")
 
         with st.form("invoice_form"):
@@ -400,6 +399,9 @@ if uploaded_file is not None:
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
+            # Update session state only when form is submitted
+            st.session_state.edited_df = working_df
+            
             form_data = {"pi_number":pi_number,"order_ref":order_ref,"buyer_name":buyer_name,"brand_name":brand_name,
                          "consignee_name":consignee_name,"consignee_address":consignee_address,"consignee_tel":consignee_tel,
                          "payment_term":payment_term,"bank_beneficiary":bank_beneficiary,"bank_account":bank_account,
@@ -407,8 +409,8 @@ if uploaded_file is not None:
                          "loading_country":loading_country,"port_loading":port_loading,"shipment_date":shipment_date,
                          "remarks":remarks,"goods_desc":goods_desc}
 
-            # Use the edited dataframe for PDF generation
-            pdf_buffer = generate_proforma_invoice(st.session_state.edited_df, form_data)
+            # Use the working dataframe (with calculated amounts) for PDF generation
+            pdf_buffer = generate_proforma_invoice(working_df, form_data)
             st.download_button("📥 Download Proforma Invoice PDF", data=pdf_buffer, file_name="proforma_invoice.pdf", mime="application/pdf")
 
     except Exception as e:
