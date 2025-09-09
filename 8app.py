@@ -323,11 +323,11 @@ def generate_proforma_invoice(df, form_data):
                                    ('LEFTPADDING',(0,2),(0,2),30),   # Add left padding to move stamp right
                                    ('TOPPADDING',(0,1),(0,1),0),     # Zero top padding for Terms row
                                    ('BOTTOMPADDING',(0,1),(0,1),0),  # Zero bottom padding for Terms row
-                                   ('TOPPADDING',(0,2),(0,2),20)])   # Add top padding to e-signature to restore gap
+                                   ('TOPPADDING',(0,2),(0,2),40)])   # Increased top padding to push e-signature down more
     
     # Set specific row heights
-    signature_table._argH[1] = 4   # Make the "Terms & Conditions" row even smaller
-    signature_table._argH[2] = 80  # Increase e-signature row height to restore spacing
+    signature_table._argH[1] = 4   # Keep the "Terms & Conditions" row small
+    signature_table._argH[2] = 120 # Increase e-signature row height further to restore original spacing
     elements.append(signature_table)
 
     doc.build(elements)
