@@ -277,7 +277,7 @@ def generate_proforma_invoice(df, form_data):
 
     # TOTAL row
     table_data.append(
-        ["TOTAL","","","","","",f"{total_qty:,}","",f"USD {total_amount:.2f}"]
+        ["Total","","","","","",f"{total_qty:,}","",f"USD&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{total_amount:.2f}"]
     )
 
     product_table = Table(table_data,colWidths=product_col_widths, repeatRows=1)
