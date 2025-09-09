@@ -192,7 +192,7 @@ def generate_proforma_invoice(df, form_data):
                                leading=8, spaceAfter=0, spaceBefore=0, leftIndent=0, rightIndent=0)
     
     consignee_data = [
-        [Paragraph("<b>Consignee:</b><br/>", header_style),  # Added line break for spacing
+        [Paragraph("<b>Consignee:</b><br/>", header_style),
          Paragraph(f"<b>Payment Term:</b> {form_data['payment_term']}", normal_style)],
         [Paragraph(f"{form_data['consignee_name']}<br/>{form_data['consignee_address']}<br/>{form_data['consignee_tel']}", 
                    ParagraphStyle('ConsigneeCompact', parent=normal_style, leading=12, spaceAfter=0, spaceBefore=0)),
