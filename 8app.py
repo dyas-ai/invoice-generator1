@@ -344,6 +344,11 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
+        
+        # Extract invoice details from Excel
+        df_raw = pd.read_excel(uploaded_file, header=None)
+        auto_extracted = extract_invoice_details(df_raw)
+        
         st.write("### Preview of Processed Data")
         
         # Initialize session state for edited data if not exists
@@ -414,25 +419,26 @@ if uploaded_file is not None:
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
-            pi_number = st.text_input("PI No. & Date", "SAR/LG/XXXX Dt. 04/09/2025")
-            order_ref = st.text_input("Landmark order Reference", "CPO/47062/25")
-            buyer_name = st.text_input("Buyer Name", "LANDMARK GROUP")
-            brand_name = st.text_input("Brand Name", "Juniors")
-            consignee_name = st.text_input("Consignee Name", "RNA Resource Group Ltd - Landmark (Babyshop)")
-            consignee_address = st.text_area("Consignee Address", "P.O Box 25030, Dubai, UAE")
-            consignee_tel = st.text_input("Consignee Tel/Fax", "Tel: 00971 4 8095500, Fax: 00971 4 8095555/66")
-            payment_term = st.text_input("Payment Term", "T/T")
-            bank_beneficiary = st.text_input("Bank Beneficiary", "SAR APPARELS INDIA PVT.LTD.")
-            bank_account = st.text_input("Account No", "2112819952")
-            bank_name = st.text_input("Bank Name", "KOTAK MAHINDRA BANK LTD")
-            bank_address = st.text_area("Bank Address", "2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001")
-            bank_swift = st.text_input("SWIFT", "KKBKINBBCPC")
-            bank_code = st.text_input("Bank Code", "0323")
-            loading_country = st.text_input("Loading Country", "India")
-            port_loading = st.text_input("Port of Loading", "Mumbai")
-            shipment_date = st.text_input("Agreed Shipment Date", "07/02/2025")
-            remarks = st.text_area("Remarks", "")
-            goods_desc = st.text_input("Description of goods", "Value Packs")
+            # Use extracted values as defaults, but allow manual override
+            pi_number = st.text_input("PI No. & Date", value=auto_extracted.get('pi_number', 'SAR/LG/XXXX Dt. 10/09/2025'))
+            order_ref = st.text_input("Landmark order Reference", value=auto_extracted.get('order_ref', 'CPO/47062/25'))
+            buyer_name = st.text_input("Buyer Name", value=auto_extracted.get('buyer_name', 'LANDMARK GROUP'))
+            brand_name = st.text_input("Brand Name", value=auto_extracted.get('brand_name', 'Juniors'))
+            consignee_name = st.text_input("Consignee Name", value="RNA Resource Group Ltd - Landmark (Babyshop)")
+            consignee_address = st.text_area("Consignee Address", value="P.O Box 25030, Dubai, UAE")
+            consignee_tel = st.text_input("Consignee Tel/Fax", value="Tel: 00971 4 8095500, Fax: 00971 4 8095555/66")
+            payment_term = st.text_input("Payment Term", value="T/T")
+            bank_beneficiary = st.text_input("Bank Beneficiary", value="SAR APPARELS INDIA PVT.LTD.")
+            bank_account = st.text_input("Account No", value="2112819952")
+            bank_name = st.text_input("Bank Name", value="KOTAK MAHINDRA BANK LTD")
+            bank_address = st.text_area("Bank Address", value="2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001")
+            bank_swift = st.text_input("SWIFT", value="KKBKINBBCPC")
+            bank_code = st.text_input("Bank Code", value="0323")
+            loading_country = st.text_input("Loading Country", value=auto_extracted.get('loading_country', 'India'))
+            port_loading = st.text_input("Port of Loading", value=auto_extracted.get('port_loading', 'Mumbai'))
+            shipment_date = st.text_input("Agreed Shipment Date", value=auto_extracted.get('shipment_date', '07/02/2025'))
+            remarks = st.text_area("Remarks", value="")
+            goods_desc = st.text_input("Description of goods", value=auto_extracted.get('goods_desc', 'Value Packs'))
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
