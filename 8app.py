@@ -81,33 +81,45 @@ def extract_invoice_details(df_raw):
 
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
-    # Read Excel file with openpyxl to check for hidden rows
-    import openpyxl
-    from io import BytesIO
+    # First try to read with openpyxl to check for hidden rows
+    try:
+        import openpyxl
+        from io import BytesIO
+        
+        # Load workbook to check row visibility
+        uploaded_file.seek(0)  # Reset file pointer
+        workbook = openpyxl.load_workbook(BytesIO(uploaded_file.read()))
+        worksheet = workbook.active
+        
+        # Get visible row indices
+        visible_rows = []
+        for row_num in range(1, worksheet.max_row + 1):
+            if not worksheet.row_dimensions[row_num].hidden:
+                visible_rows.append(row_num - 1)  # Convert to 0-based index
+        
+        # Reset file pointer for pandas
+        uploaded_file.seek(0)
+        df_raw = pd.read_excel(uploaded_file, header=None)
+        
+        # Filter only visible rows if we have visible row info
+        if visible_rows:
+            # Only keep rows that exist in the dataframe
+            valid_visible_rows = [r for r in visible_rows if r < len(df_raw)]
+            if valid_visible_rows:
+                df_raw = df_raw.iloc[valid_visible_rows]
+                df_raw = df_raw.reset_index(drop=True)
     
-    # Load workbook to check row visibility
-    uploaded_file.seek(0)  # Reset file pointer
-    workbook = openpyxl.load_workbook(BytesIO(uploaded_file.read()))
-    worksheet = workbook.active
-    
-    # Get visible row indices
-    visible_rows = []
-    for row_num in range(1, worksheet.max_row + 1):
-        if not worksheet.row_dimensions[row_num].hidden:
-            visible_rows.append(row_num - 1)  # Convert to 0-based index
-    
-    # Reset file pointer for pandas
-    uploaded_file.seek(0)
-    df_raw = pd.read_excel(uploaded_file, header=None)
-    
-    # Filter only visible rows
-    df_raw = df_raw.iloc[visible_rows]
-    df_raw = df_raw.reset_index(drop=True)
+    except Exception as e:
+        # If openpyxl fails, fall back to regular pandas reading
+        uploaded_file.seek(0)
+        df_raw = pd.read_excel(uploaded_file, header=None)
 
     # detect header row
     header_row_idx = None
     stacked_header_idx = None
     for i in range(min(max_rows, len(df_raw))):
+        if i >= len(df_raw):
+            break
         row = df_raw.iloc[i].astype(str)
         if row.str.contains("Style", case=False, na=False).any():
             header_row_idx = i
@@ -192,13 +204,16 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Read fabric type from column N, row 5 (0-indexed: column 13, row 4) - only from visible rows
+    # Read fabric type from column N, row 5 with bounds checking
     try:
-        fabric_type_value = df_raw.iloc[4, 13]  # Row 5 (index 4), Column N (index 13)
-        if pd.isna(fabric_type_value) or str(fabric_type_value).strip() == "":
-            fabric_type_value = "Knitted"  # Default fallback
+        if len(df_raw) > 4 and len(df_raw.columns) > 13:
+            fabric_type_value = df_raw.iloc[4, 13]  # Row 5 (index 4), Column N (index 13)
+            if pd.isna(fabric_type_value) or str(fabric_type_value).strip() == "":
+                fabric_type_value = "Knitted"  # Default fallback
+            else:
+                fabric_type_value = str(fabric_type_value).strip()
         else:
-            fabric_type_value = str(fabric_type_value).strip()
+            fabric_type_value = "Knitted"  # Default if bounds are exceeded
     except (IndexError, KeyError):
         fabric_type_value = "Knitted"  # Default fallback if cell doesn't exist
 
