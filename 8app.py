@@ -492,13 +492,26 @@ if uploaded_file is not None:
             key="data_editor"
         )
         
-        # Calculate amounts for the current edited data
+        # Calculate amounts for the current edited data with proper NaN handling
         working_df = edited_df.copy()
+        
+        # Clean and handle NaN values before processing
+        for col in working_df.columns:
+            if col in ["QTY", "UNIT PRICE", "AMOUNT"]:
+                # Replace NaN with 0 for numeric columns
+                working_df[col] = working_df[col].fillna(0)
+            else:
+                # Replace NaN with empty string for text columns
+                working_df[col] = working_df[col].fillna("")
+        
+        # Convert numeric columns with proper error handling
+        working_df["QTY"] = pd.to_numeric(working_df["QTY"], errors="coerce").fillna(0).astype(int)
+        working_df["UNIT PRICE"] = pd.to_numeric(working_df["UNIT PRICE"], errors="coerce").fillna(0.0).astype(float)
         
         # Add text truncation and abbreviations for long content
         def truncate_text(text, max_length=15):
             """Truncate text and add ellipsis if too long"""
-            if pd.isna(text):
+            if pd.isna(text) or text == "":
                 return ""
             text = str(text).strip()
             if len(text) <= max_length:
@@ -515,7 +528,7 @@ if uploaded_file is not None:
             "New Zealand": "NZ"
         }
         
-        # Apply truncation and abbreviations
+        # Apply truncation and abbreviations with proper NaN handling
         for idx, row in working_df.iterrows():
             # Handle country names with abbreviations first
             country = str(row.get("COUNTRY OF ORIGIN", "")).strip()
@@ -530,10 +543,15 @@ if uploaded_file is not None:
             working_df.at[idx, "FABRIC TYPE"] = truncate_text(row.get("FABRIC TYPE", ""), 12)
             working_df.at[idx, "COMPOSITION"] = truncate_text(row.get("COMPOSITION", ""), 15)
         
-        working_df["AMOUNT"] = (
-            pd.to_numeric(working_df["QTY"], errors="coerce").fillna(0) * 
-            pd.to_numeric(working_df["UNIT PRICE"], errors="coerce").fillna(0)
-        )
+        # Calculate amounts after all cleaning is done
+        working_df["AMOUNT"] = working_df["QTY"] * working_df["UNIT PRICE"]
+        
+        # Remove completely empty rows (where all important fields are empty/zero)
+        working_df = working_df[~(
+            (working_df["STYLE NO"].str.strip() == "") & 
+            (working_df["QTY"] == 0) & 
+            (working_df["UNIT PRICE"] == 0.0)
+        )]
         
         # Show summary statistics
         total_qty = working_df["QTY"].sum()
@@ -551,12 +569,12 @@ if uploaded_file is not None:
             consignee_address = st.text_area("Consignee Address", value="", placeholder="Enter complete consignee address with city, country, postal code")
             consignee_tel = st.text_input("Consignee Tel/Fax", value="", placeholder="Tel: +XXX X XXXXXXX, Fax: +XXX X XXXXXXX")
             payment_term = st.text_input("Payment Term", value="T/T")
-            bank_beneficiary = st.text_input("Bank Beneficiary", value="SAR APPARELS INDIA PVT.LTD.", placeholder="Enter beneficiary company name")
-            bank_account = st.text_input("Account No", value="2112819952", placeholder="Enter bank account number")
-            bank_name = st.text_input("Bank Name", value="KOTAK MAHINDRA BANK", placeholder="Enter bank name")
-            bank_address = st.text_area("Bank Address", value="2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001", placeholder="Enter complete bank address with branch, city, country")
-            bank_swift = st.text_input("SWIFT", value="KKBKINBBCPC", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
-            bank_code = st.text_input("Bank Code", value="0323", placeholder="Enter bank code/routing number")
+            bank_beneficiary = st.text_input("Bank Beneficiary", value="", placeholder="Enter beneficiary company name")
+            bank_account = st.text_input("Account No", value="", placeholder="Enter bank account number")
+            bank_name = st.text_input("Bank Name", value="", placeholder="Enter bank name")
+            bank_address = st.text_area("Bank Address", value="", placeholder="Enter complete bank address with branch, city, country")
+            bank_swift = st.text_input("SWIFT", value="", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
+            bank_code = st.text_input("Bank Code", value="", placeholder="Enter bank code/routing number")
             loading_country = st.text_input("Loading Country", value=auto_extracted.get('loading_country', 'India'))
             port_loading = st.text_input("Port of Loading", value=auto_extracted.get('port_loading', 'Mumbai'))
             shipment_date = st.text_input("Agreed Shipment Date", value=auto_extracted.get('shipment_date', '07/02/2025'))
