@@ -546,9 +546,10 @@ if uploaded_file is not None:
         # Calculate amounts after all cleaning is done
         working_df["AMOUNT"] = working_df["QTY"] * working_df["UNIT PRICE"]
         
-        # Remove completely empty rows (where all important fields are empty/zero)
+        # Remove only completely empty rows (where ALL key fields are empty)
         working_df = working_df[~(
             (working_df["STYLE NO"].str.strip() == "") & 
+            (working_df["ITEM DESCRIPTION"].str.strip() == "") &
             (working_df["QTY"] == 0) & 
             (working_df["UNIT PRICE"] == 0.0)
         )]
