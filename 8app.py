@@ -301,6 +301,7 @@ def generate_proforma_invoice(df, form_data):
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
         ('SPAN',(6,-1),(7,-1)),
         ('FONTNAME',(0,-1),(-1,-1),'Helvetica-Bold'),  # Make TOTAL row bold
+        ('WORDWRAP', (0,0), (-1,-1), 'CJK'),  # Enable text wrapping for all cells
     ]))
     elements.append(product_table)
 
