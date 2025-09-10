@@ -8,76 +8,6 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.lib.units import inch
 import io
 from num2words import num2words
-import datetime
-
-# ===== Auto-extraction Function =====
-def extract_invoice_details(df_raw):
-    """Extract invoice details from Excel sheet using keyword search"""
-    
-    extracted_data = {}
-    
-    # Generate PI Number with today's date
-    today = datetime.datetime.now()
-    pi_date = today.strftime("%d/%m/%Y")
-    # Simple counter - in production, you might want a more sophisticated numbering system
-    import random
-    pi_num = f"SAR/LG/{random.randint(1000, 9999)}"
-    extracted_data['pi_number'] = f"{pi_num} Dt. {pi_date}"
-    
-    # Search through all cells for keywords
-    for row_idx, row in df_raw.iterrows():
-        for col_idx, cell in enumerate(row):
-            if pd.isna(cell):
-                continue
-            cell_str = str(cell).strip()
-            
-            # Buyer Name - Row 1, Column A (index 0)
-            if row_idx == 0 and col_idx == 0:
-                extracted_data['buyer_name'] = cell_str
-            
-            # Order No - search for "Order No :" and get value 2 cells to the right
-            elif "Order No" in cell_str and ":" in cell_str:
-                if col_idx + 2 < len(row):
-                    order_value = row.iloc[col_idx + 2]
-                    if not pd.isna(order_value):
-                        extracted_data['order_ref'] = str(order_value).strip()
-            
-            # Brand Name - search for "Brand" and get value 1 cell to the right
-            elif "Brand" in cell_str and cell_str.lower() != "brand name":  # Avoid header matches
-                if col_idx + 1 < len(row):
-                    brand_value = row.iloc[col_idx + 1]
-                    if not pd.isna(brand_value):
-                        extracted_data['brand_name'] = str(brand_value).strip()
-            
-            # Loading Country - search for "Made in Country" and get value 1 cell to the right
-            elif "Made in Country" in cell_str:
-                if col_idx + 1 < len(row):
-                    country_value = row.iloc[col_idx + 1]
-                    if not pd.isna(country_value):
-                        extracted_data['loading_country'] = str(country_value).strip()
-            
-            # Port of Loading - search for "Loading Port" and get value 1 cell to the right
-            elif "Loading Port" in cell_str:
-                if col_idx + 1 < len(row):
-                    port_value = row.iloc[col_idx + 1]
-                    if not pd.isna(port_value):
-                        extracted_data['port_loading'] = str(port_value).strip()
-            
-            # Agreed Shipment Date - search for "Agreed Ship Date" and get value 2 cells to the right
-            elif "Agreed Ship Date" in cell_str:
-                if col_idx + 2 < len(row):
-                    ship_value = row.iloc[col_idx + 2]
-                    if not pd.isna(ship_value):
-                        extracted_data['shipment_date'] = str(ship_value).strip()
-            
-            # Description of goods - search for "ORDER OF" and get value 1 cell to the right
-            elif "ORDER OF" in cell_str:
-                if col_idx + 1 < len(row):
-                    goods_value = row.iloc[col_idx + 1]
-                    if not pd.isna(goods_value):
-                        extracted_data['goods_desc'] = str(goods_value).strip()
-    
-    return extracted_data
 
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
@@ -414,11 +344,6 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 if uploaded_file is not None:
     try:
         df = preprocess_excel_flexible_auto(uploaded_file)
-        
-        # Extract invoice details from Excel
-        df_raw = pd.read_excel(uploaded_file, header=None)
-        auto_extracted = extract_invoice_details(df_raw)
-        
         st.write("### Preview of Processed Data")
         
         # Initialize session state for edited data if not exists
@@ -489,26 +414,25 @@ if uploaded_file is not None:
 
         with st.form("invoice_form"):
             st.subheader("✍️ Enter Invoice Details")
-            # Use extracted values as defaults, but allow manual override
-            pi_number = st.text_input("PI No. & Date", value=auto_extracted.get('pi_number', 'SAR/LG/XXXX Dt. 10/09/2025'))
-            order_ref = st.text_input("Landmark order Reference", value=auto_extracted.get('order_ref', 'CPO/47062/25'))
-            buyer_name = st.text_input("Buyer Name", value=auto_extracted.get('buyer_name', 'LANDMARK GROUP'))
-            brand_name = st.text_input("Brand Name", value=auto_extracted.get('brand_name', 'Juniors'))
-            consignee_name = st.text_input("Consignee Name", value="", placeholder="Enter consignee company name")
-            consignee_address = st.text_area("Consignee Address", value="", placeholder="Enter complete consignee address with city, country, postal code")
-            consignee_tel = st.text_input("Consignee Tel/Fax", value="", placeholder="Tel: +XXX X XXXXXXX, Fax: +XXX X XXXXXXX")
-            payment_term = st.text_input("Payment Term", value="T/T")
-            bank_beneficiary = st.text_input("Bank Beneficiary", value="", placeholder="Enter beneficiary company name")
-            bank_account = st.text_input("Account No", value="", placeholder="Enter bank account number")
-            bank_name = st.text_input("Bank Name", value="", placeholder="Enter bank name")
-            bank_address = st.text_area("Bank Address", value="", placeholder="Enter complete bank address with branch, city, country")
-            bank_swift = st.text_input("SWIFT", value="", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
-            bank_code = st.text_input("Bank Code", value="", placeholder="Enter bank code/routing number")
-            loading_country = st.text_input("Loading Country", value=auto_extracted.get('loading_country', 'India'))
-            port_loading = st.text_input("Port of Loading", value=auto_extracted.get('port_loading', 'Mumbai'))
-            shipment_date = st.text_input("Agreed Shipment Date", value=auto_extracted.get('shipment_date', '07/02/2025'))
-            remarks = st.text_area("Remarks", value="", placeholder="Enter any additional remarks or special instructions (optional)")
-            goods_desc = st.text_input("Description of goods", value=auto_extracted.get('goods_desc', 'Value Packs'))
+            pi_number = st.text_input("PI No. & Date", "SAR/LG/XXXX Dt. 04/09/2025")
+            order_ref = st.text_input("Landmark order Reference", "CPO/47062/25")
+            buyer_name = st.text_input("Buyer Name", "LANDMARK GROUP")
+            brand_name = st.text_input("Brand Name", "Juniors")
+            consignee_name = st.text_input("Consignee Name", "RNA Resource Group Ltd - Landmark (Babyshop)")
+            consignee_address = st.text_area("Consignee Address", "P.O Box 25030, Dubai, UAE")
+            consignee_tel = st.text_input("Consignee Tel/Fax", "Tel: 00971 4 8095500, Fax: 00971 4 8095555/66")
+            payment_term = st.text_input("Payment Term", "T/T")
+            bank_beneficiary = st.text_input("Bank Beneficiary", "SAR APPARELS INDIA PVT.LTD.")
+            bank_account = st.text_input("Account No", "2112819952")
+            bank_name = st.text_input("Bank Name", "KOTAK MAHINDRA BANK LTD")
+            bank_address = st.text_area("Bank Address", "2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001")
+            bank_swift = st.text_input("SWIFT", "KKBKINBBCPC")
+            bank_code = st.text_input("Bank Code", "0323")
+            loading_country = st.text_input("Loading Country", "India")
+            port_loading = st.text_input("Port of Loading", "Mumbai")
+            shipment_date = st.text_input("Agreed Shipment Date", "07/02/2025")
+            remarks = st.text_area("Remarks", "")
+            goods_desc = st.text_input("Description of goods", "Value Packs")
             submitted = st.form_submit_button("Generate PDF")
 
         if submitted:
