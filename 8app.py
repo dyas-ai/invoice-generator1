@@ -8,6 +8,76 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.lib.units import inch
 import io
 from num2words import num2words
+import datetime
+
+# ===== Auto-extraction Function =====
+def extract_invoice_details(df_raw):
+    """Extract invoice details from Excel sheet using keyword search"""
+    
+    extracted_data = {}
+    
+    # Generate PI Number with today's date
+    today = datetime.datetime.now()
+    pi_date = today.strftime("%d/%m/%Y")
+    # Simple counter - in production, you might want a more sophisticated numbering system
+    import random
+    pi_num = f"SAR/LG/{random.randint(1000, 9999)}"
+    extracted_data['pi_number'] = f"{pi_num} Dt. {pi_date}"
+    
+    # Search through all cells for keywords
+    for row_idx, row in df_raw.iterrows():
+        for col_idx, cell in enumerate(row):
+            if pd.isna(cell):
+                continue
+            cell_str = str(cell).strip()
+            
+            # Buyer Name - Row 1, Column A (index 0)
+            if row_idx == 0 and col_idx == 0:
+                extracted_data['buyer_name'] = cell_str
+            
+            # Order No - search for "Order No :" and get value 2 cells to the right
+            elif "Order No" in cell_str and ":" in cell_str:
+                if col_idx + 2 < len(row):
+                    order_value = row.iloc[col_idx + 2]
+                    if not pd.isna(order_value):
+                        extracted_data['order_ref'] = str(order_value).strip()
+            
+            # Brand Name - search for "Brand" and get value 1 cell to the right
+            elif "Brand" in cell_str and cell_str.lower() != "brand name":  # Avoid header matches
+                if col_idx + 1 < len(row):
+                    brand_value = row.iloc[col_idx + 1]
+                    if not pd.isna(brand_value):
+                        extracted_data['brand_name'] = str(brand_value).strip()
+            
+            # Loading Country - search for "Made in Country" and get value 1 cell to the right
+            elif "Made in Country" in cell_str:
+                if col_idx + 1 < len(row):
+                    country_value = row.iloc[col_idx + 1]
+                    if not pd.isna(country_value):
+                        extracted_data['loading_country'] = str(country_value).strip()
+            
+            # Port of Loading - search for "Loading Port" and get value 1 cell to the right
+            elif "Loading Port" in cell_str:
+                if col_idx + 1 < len(row):
+                    port_value = row.iloc[col_idx + 1]
+                    if not pd.isna(port_value):
+                        extracted_data['port_loading'] = str(port_value).strip()
+            
+            # Agreed Shipment Date - search for "Agreed Ship Date" and get value 2 cells to the right
+            elif "Agreed Ship Date" in cell_str:
+                if col_idx + 2 < len(row):
+                    ship_value = row.iloc[col_idx + 2]
+                    if not pd.isna(ship_value):
+                        extracted_data['shipment_date'] = str(ship_value).strip()
+            
+            # Description of goods - search for "ORDER OF" and get value 1 cell to the right
+            elif "ORDER OF" in cell_str:
+                if col_idx + 1 < len(row):
+                    goods_value = row.iloc[col_idx + 1]
+                    if not pd.isna(goods_value):
+                        extracted_data['goods_desc'] = str(goods_value).strip()
+    
+    return extracted_data
 
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
