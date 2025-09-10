@@ -81,7 +81,28 @@ def extract_invoice_details(df_raw):
 
 # ===== Preprocessing Function =====
 def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
+    # Read Excel file with openpyxl to check for hidden rows
+    import openpyxl
+    from io import BytesIO
+    
+    # Load workbook to check row visibility
+    uploaded_file.seek(0)  # Reset file pointer
+    workbook = openpyxl.load_workbook(BytesIO(uploaded_file.read()))
+    worksheet = workbook.active
+    
+    # Get visible row indices
+    visible_rows = []
+    for row_num in range(1, worksheet.max_row + 1):
+        if not worksheet.row_dimensions[row_num].hidden:
+            visible_rows.append(row_num - 1)  # Convert to 0-based index
+    
+    # Reset file pointer for pandas
+    uploaded_file.seek(0)
     df_raw = pd.read_excel(uploaded_file, header=None)
+    
+    # Filter only visible rows
+    df_raw = df_raw.iloc[visible_rows]
+    df_raw = df_raw.reset_index(drop=True)
 
     # detect header row
     header_row_idx = None
@@ -171,7 +192,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Read fabric type from column N, row 5 (0-indexed: column 13, row 4)
+    # Read fabric type from column N, row 5 (0-indexed: column 13, row 4) - only from visible rows
     try:
         fabric_type_value = df_raw.iloc[4, 13]  # Row 5 (index 4), Column N (index 13)
         if pd.isna(fabric_type_value) or str(fabric_type_value).strip() == "":
