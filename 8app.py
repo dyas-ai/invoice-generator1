@@ -395,9 +395,33 @@ def generate_proforma_invoice(df, form_data):
     for i in range(5):
         table_data.append(["","","","","","","","",""])
 
-    # TOTAL row - increased spacing to touch column walls
+    # Function for Indian number formatting
+    def indian_format(number):
+        """Format number with Indian comma placement (x,xx,xxx pattern)"""
+        if number == 0:
+            return "0.00"
+        
+        # Convert to string with 2 decimal places
+        num_str = f"{number:.2f}"
+        integer_part, decimal_part = num_str.split(".")
+        
+        # Reverse the integer part for easier processing
+        reversed_int = integer_part[::-1]
+        
+        # Add commas: first comma after 3 digits, then every 2 digits
+        formatted = ""
+        for i, digit in enumerate(reversed_int):
+            if i == 3:  # First comma after 3 digits
+                formatted = "," + formatted
+            elif i > 3 and (i - 3) % 2 == 0:  # Then every 2 digits
+                formatted = "," + formatted
+            formatted = digit + formatted
+        
+        return f"{formatted}.{decimal_part}"
+
+    # TOTAL row with Indian formatting
     table_data.append(
-        ["Total","","","","","",f"{total_qty:,}","",f"USD            {total_amount:.2f}"]
+        ["Total","","","","","",f"{total_qty:,}","",f"USD            {indian_format(total_amount)}"]
     )
 
     product_table = Table(table_data,colWidths=product_col_widths, repeatRows=1)
