@@ -79,40 +79,51 @@ def extract_invoice_details(df_raw):
     
     return extracted_data
 
-# ===== Preprocessing Function =====
-def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
-    # First try to read with openpyxl to check for hidden rows
+# ===== Hidden Row Detection Function =====
+def get_visible_rows_openpyxl(uploaded_file):
+    """Get list of visible row indices using openpyxl"""
     try:
         import openpyxl
         from io import BytesIO
         
-        # Load workbook to check row visibility
-        uploaded_file.seek(0)  # Reset file pointer
+        # Reset file pointer and read with openpyxl
+        uploaded_file.seek(0)
         workbook = openpyxl.load_workbook(BytesIO(uploaded_file.read()))
         worksheet = workbook.active
         
-        # Get visible row indices
         visible_rows = []
         for row_num in range(1, worksheet.max_row + 1):
+            # Check if row is not hidden
             if not worksheet.row_dimensions[row_num].hidden:
-                visible_rows.append(row_num - 1)  # Convert to 0-based index
+                visible_rows.append(row_num - 1)  # Convert to 0-based index for pandas
         
-        # Reset file pointer for pandas
-        uploaded_file.seek(0)
-        df_raw = pd.read_excel(uploaded_file, header=None)
-        
-        # Filter only visible rows if we have visible row info
-        if visible_rows:
-            # Only keep rows that exist in the dataframe
-            valid_visible_rows = [r for r in visible_rows if r < len(df_raw)]
-            if valid_visible_rows:
-                df_raw = df_raw.iloc[valid_visible_rows]
-                df_raw = df_raw.reset_index(drop=True)
-    
+        return visible_rows
     except Exception as e:
-        # If openpyxl fails, fall back to regular pandas reading
-        uploaded_file.seek(0)
-        df_raw = pd.read_excel(uploaded_file, header=None)
+        print(f"Could not detect hidden rows with openpyxl: {e}")
+        return None
+
+# ===== Preprocessing Function =====
+def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
+    # First, get visible row indices
+    visible_row_indices = get_visible_rows_openpyxl(uploaded_file)
+    
+    # Reset file pointer for pandas
+    uploaded_file.seek(0)
+    df_raw = pd.read_excel(uploaded_file, header=None)
+    
+    # Filter to only visible rows if we successfully detected them
+    if visible_row_indices is not None:
+        # Ensure we don't go beyond dataframe bounds
+        max_row_in_df = len(df_raw) - 1
+        valid_visible_rows = [r for r in visible_row_indices if r <= max_row_in_df]
+        
+        if valid_visible_rows:
+            print(f"Filtering to {len(valid_visible_rows)} visible rows out of {len(df_raw)} total rows")
+            df_raw = df_raw.iloc[valid_visible_rows].reset_index(drop=True)
+        else:
+            print("No valid visible rows found, using all rows")
+    else:
+        print("Hidden row detection failed, processing all rows")
 
     # detect header row
     header_row_idx = None
@@ -186,7 +197,7 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     df = df[~df["STYLE NO"].isin(["", "nan", "NaN", "None", "NONE"])]
     df = df[~df["STYLE NO"].str.contains("total|grand|remarks|note", case=False, na=False)]
     
-    # Remove specific unwanted style codes
+    # Remove specific unwanted style codes (as backup filter)
     df = df[df["STYLE NO"] != "SA0167A21"]
 
     df["QTY"] = pd.to_numeric(df.get("QTY", 0), errors="coerce").fillna(0).astype(int)
