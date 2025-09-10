@@ -546,13 +546,23 @@ if uploaded_file is not None:
         # Calculate amounts after all cleaning is done
         working_df["AMOUNT"] = working_df["QTY"] * working_df["UNIT PRICE"]
         
-        # Remove only completely empty rows (where ALL key fields are empty)
-        working_df = working_df[~(
-            (working_df["STYLE NO"].str.strip() == "") & 
-            (working_df["ITEM DESCRIPTION"].str.strip() == "") &
-            (working_df["QTY"] == 0) & 
-            (working_df["UNIT PRICE"] == 0.0)
-        )]
+        # Remove rows where required fields are not filled (but allow zero values)
+        # Check if the original data had null/empty values before we filled them with defaults
+        rows_to_keep = []
+        for idx, row in edited_df.iterrows():
+            style_filled = pd.notna(row["STYLE NO"]) and str(row["STYLE NO"]).strip() != ""
+            qty_filled = pd.notna(row["QTY"])  # Allow 0 but not NaN/empty
+            price_filled = pd.notna(row["UNIT PRICE"])  # Allow 0.0 but not NaN/empty
+            
+            if style_filled and qty_filled and price_filled:
+                rows_to_keep.append(idx)
+        
+        # Keep only rows that have all required fields filled
+        if rows_to_keep:
+            working_df = working_df.iloc[rows_to_keep].reset_index(drop=True)
+        else:
+            # If no valid rows, return empty dataframe with correct columns
+            working_df = working_df.iloc[0:0]
         
         # Show summary statistics
         total_qty = working_df["QTY"].sum()
