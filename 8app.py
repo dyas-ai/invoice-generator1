@@ -501,7 +501,7 @@ if uploaded_file is not None:
             bank_beneficiary = st.text_input("Bank Beneficiary", value="SAR APPARELS INDIA PVT.LTD.", placeholder="Enter beneficiary company name")
             bank_account = st.text_input("Account No", value="2112819952", placeholder="Enter bank account number")
             bank_name = st.text_input("Bank Name", value="KOTAK MAHINDRA BANK", placeholder="Enter bank name")
-            bank_address = st.text_area("Bank Address", value="", placeholder="Enter complete bank address with branch, city, country")
+            bank_address = st.text_area("Bank Address", value="2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001", placeholder="Enter complete bank address with branch, city, country")
             bank_swift = st.text_input("SWIFT", value="KKBKINBBCPC", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
             bank_code = st.text_input("Bank Code", value="0323", placeholder="Enter bank code/routing number")
             loading_country = st.text_input("Loading Country", value=auto_extracted.get('loading_country', 'India'))
