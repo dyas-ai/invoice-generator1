@@ -301,6 +301,7 @@ def generate_proforma_invoice(df, form_data):
         ('ALIGN',(0,-1),(5,-1),'CENTER'),
         ('SPAN',(6,-1),(7,-1)),
         ('FONTNAME',(0,-1),(-1,-1),'Helvetica-Bold'),  # Make TOTAL row bold
+        ('WORDWRAP', (0,0), (-1,-1), 'CJK'),  # Enable text wrapping for all cells
     ]))
     elements.append(product_table)
 
@@ -365,6 +366,42 @@ if uploaded_file is not None:
         
         # Calculate amounts for the current edited data
         working_df = edited_df.copy()
+        
+        # Add text truncation and abbreviations for long content
+        def truncate_text(text, max_length=15):
+            """Truncate text and add ellipsis if too long"""
+            if pd.isna(text):
+                return ""
+            text = str(text).strip()
+            if len(text) <= max_length:
+                return text
+            return text[:max_length-3] + "..."
+        
+        # Common country abbreviations
+        country_abbreviations = {
+            "United States of America": "USA",
+            "United Kingdom": "UK", 
+            "United Arab Emirates": "UAE",
+            "Saudi Arabia": "KSA",
+            "South Africa": "ZA",
+            "New Zealand": "NZ"
+        }
+        
+        # Apply truncation and abbreviations
+        for idx, row in working_df.iterrows():
+            # Handle country names with abbreviations first
+            country = str(row.get("COUNTRY OF ORIGIN", "")).strip()
+            if country in country_abbreviations:
+                working_df.at[idx, "COUNTRY OF ORIGIN"] = country_abbreviations[country]
+            else:
+                working_df.at[idx, "COUNTRY OF ORIGIN"] = truncate_text(country, 12)
+            
+            # Truncate other long text fields
+            working_df.at[idx, "STYLE NO"] = truncate_text(row.get("STYLE NO", ""), 12)
+            working_df.at[idx, "ITEM DESCRIPTION"] = truncate_text(row.get("ITEM DESCRIPTION", ""), 18)
+            working_df.at[idx, "FABRIC TYPE"] = truncate_text(row.get("FABRIC TYPE", ""), 12)
+            working_df.at[idx, "COMPOSITION"] = truncate_text(row.get("COMPOSITION", ""), 15)
+        
         working_df["AMOUNT"] = (
             pd.to_numeric(working_df["QTY"], errors="coerce").fillna(0) * 
             pd.to_numeric(working_df["UNIT PRICE"], errors="coerce").fillna(0)
