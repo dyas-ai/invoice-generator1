@@ -461,6 +461,8 @@ def generate_proforma_invoice(df, form_data):
 
     # Signature block with e-stamp and total in words
     total_words_str = num2words(round(total_amount), to='cardinal', lang='en').upper()
+    # Remove commas from the total in words
+    total_words_str = total_words_str.replace(",", "")
     total_words_str = f"TOTAL IN WORDS: USD {total_words_str} DOLLARS"
 
     signature_data = [
