@@ -56,15 +56,15 @@ def extract_invoice_details(df_raw):
                     if not pd.isna(country_value):
                         extracted_data['loading_country'] = str(country_value).strip()
             
-            # Port of Loading - search for "Loading Port" and get value 1 cell to the right
-            elif "Loading Port" in cell_str:
+            # Port of Loading - search for "PORT OF LOADING" or "Loading Port" and get value 1 cell to the right
+            elif ("PORT OF LOADING" in cell_str) or ("Loading Port" in cell_str):
                 if col_idx + 1 < len(row):
                     port_value = row.iloc[col_idx + 1]
                     if not pd.isna(port_value):
                         extracted_data['port_loading'] = str(port_value).strip()
             
-            # Agreed Shipment Date - search for "Agreed Ship Date" and get value 2 cells to the right
-            elif "Agreed Ship Date" in cell_str:
+            # Agreed Shipment Date - search for multiple variations and get value 2 cells to the right
+            elif any(keyword in cell_str for keyword in ["Agreed Ship Date", "ETA", "AGREED SHIP DATE"]):
                 if col_idx + 2 < len(row):
                     ship_value = row.iloc[col_idx + 2]
                     if not pd.isna(ship_value):
@@ -616,12 +616,12 @@ if uploaded_file is not None:
             consignee_address = st.text_area("Consignee Address", value="", placeholder="Enter complete consignee address with city, country, postal code")
             consignee_tel = st.text_input("Consignee Tel/Fax", value="", placeholder="Tel: +XXX X XXXXXXX, Fax: +XXX X XXXXXXX")
             payment_term = st.text_input("Payment Term", value="T/T")
-            bank_beneficiary = st.text_input("Bank Beneficiary", value="SAR APPARELS INDIA PVT.LTD.", placeholder="Enter beneficiary company name")
-            bank_account = st.text_input("Account No", value="2112819952", placeholder="Enter bank account number")
-            bank_name = st.text_input("Bank Name", value="KOTAK MAHINDRA BANK", placeholder="Enter bank name")
-            bank_address = st.text_area("Bank Address", value="2 BRABOURNE ROAD, GOVIND BHAVAN, GROUND FLOOR, KOLKATA-700001", placeholder="Enter complete bank address with branch, city, country")
-            bank_swift = st.text_input("SWIFT", value="KKBKINBBCPC", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
-            bank_code = st.text_input("Bank Code", value="0323", placeholder="Enter bank code/routing number")
+            bank_beneficiary = st.text_input("Bank Beneficiary", value="", placeholder="Enter beneficiary company name")
+            bank_account = st.text_input("Account No", value="", placeholder="Enter bank account number")
+            bank_name = st.text_input("Bank Name", value="", placeholder="Enter bank name")
+            bank_address = st.text_area("Bank Address", value="", placeholder="Enter complete bank address with branch, city, country")
+            bank_swift = st.text_input("SWIFT", value="", placeholder="Enter SWIFT/BIC code (e.g., KKBKINBBCPC)")
+            bank_code = st.text_input("Bank Code", value="", placeholder="Enter bank code/routing number")
             loading_country = st.text_input("Loading Country", value=auto_extracted.get('loading_country', 'India'))
             port_loading = st.text_input("Port of Loading", value=auto_extracted.get('port_loading', 'Mumbai'))
             shipment_date = st.text_input("Agreed Shipment Date", value=auto_extracted.get('shipment_date', '07/02/2025'))
