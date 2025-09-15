@@ -242,17 +242,17 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Read fabric type by searching for "Texture" keyword instead of fixed position
+    # Read fabric type by searching for "Texture :" keyword (FIXED TO INCLUDE SPACE AND COLON)
     try:
         fabric_type_value = "Knitted"  # Default fallback
         
-        # Search for "Texture" keyword in the dataframe
+        # Search for "Texture :" keyword in the dataframe
         for row_idx, row in df_raw.iterrows():
             for col_idx, cell in enumerate(row):
                 if pd.isna(cell):
                     continue
                 cell_str = str(cell).strip()
-                if "Texture" in cell_str:
+                if "Texture :" in cell_str:  # FIXED: Now searches for "Texture :" with space and colon
                     if col_idx + 1 < len(row):
                         texture_value = row.iloc[col_idx + 1]
                         if not pd.isna(texture_value):
