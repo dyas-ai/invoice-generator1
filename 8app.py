@@ -12,7 +12,7 @@ import datetime
 
 # ===== Auto-extraction Function =====
 def extract_invoice_details(df_raw):
-    """Extract invoice details from Excel sheet using keyword search"""
+    """Extract invoice details from Excel sheet using keyword search - only from first 6 rows"""
     
     extracted_data = {}
     
@@ -24,8 +24,10 @@ def extract_invoice_details(df_raw):
     pi_num = f"SAR/LG/{random.randint(1000, 9999)}"
     extracted_data['pi_number'] = f"{pi_num} Dt. {pi_date}"
     
-    # Search through all cells for keywords
-    for row_idx, row in df_raw.iterrows():
+    # Search through only the first 6 rows for keywords
+    max_search_rows = min(6, len(df_raw))
+    for row_idx in range(max_search_rows):
+        row = df_raw.iloc[row_idx]
         for col_idx, cell in enumerate(row):
             if pd.isna(cell):
                 continue
@@ -56,29 +58,41 @@ def extract_invoice_details(df_raw):
                     if not pd.isna(country_value):
                         extracted_data['loading_country'] = str(country_value).strip()
             
-            # Port of Loading - search for "Loading Port" and get value 1 cell to the right
-            elif "Loading Port" in cell_str:
+            # Port of Loading - search for multiple keywords and get value 1 cell to the right
+            elif ("Loading Port" in cell_str) or ("PORT OF LOADING" in cell_str):
                 if col_idx + 1 < len(row):
                     port_value = row.iloc[col_idx + 1]
                     if not pd.isna(port_value):
                         extracted_data['port_loading'] = str(port_value).strip()
             
-            # Agreed Shipment Date - search for "Agreed Ship Date" and get value 2 cells to the right
-            elif "Agreed Ship Date" in cell_str:
-                if col_idx + 2 < len(row):
-                    ship_value = row.iloc[col_idx + 2]
-                    if not pd.isna(ship_value):
-                        # Handle datetime objects by extracting only the date part
-                        if hasattr(ship_value, 'date'):
-                            # If it's a datetime object, get just the date
-                            extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
-                        else:
-                            # If it's already a string, clean it up
-                            ship_str = str(ship_value).strip()
-                            # Remove time portion if present (anything after space)
-                            if ' ' in ship_str:
-                                ship_str = ship_str.split(' ')[0]
-                            extracted_data['shipment_date'] = ship_str
+            # Agreed Shipment Date - search for multiple keywords and get value based on keyword
+            elif ("Agreed Ship Date" in cell_str) or ("ETA" in cell_str):
+                # For "Agreed Ship Date", look 2 cells to the right
+                if "Agreed Ship Date" in cell_str:
+                    if col_idx + 2 < len(row):
+                        ship_value = row.iloc[col_idx + 2]
+                        if not pd.isna(ship_value):
+                            # Handle datetime objects by extracting only the date part
+                            if hasattr(ship_value, 'date'):
+                                extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
+                            else:
+                                ship_str = str(ship_value).strip()
+                                if ' ' in ship_str:
+                                    ship_str = ship_str.split(' ')[0]
+                                extracted_data['shipment_date'] = ship_str
+                # For "ETA", look 1 cell to the right
+                elif "ETA" in cell_str:
+                    if col_idx + 1 < len(row):
+                        ship_value = row.iloc[col_idx + 1]
+                        if not pd.isna(ship_value):
+                            # Handle datetime objects by extracting only the date part
+                            if hasattr(ship_value, 'date'):
+                                extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
+                            else:
+                                ship_str = str(ship_value).strip()
+                                if ' ' in ship_str:
+                                    ship_str = ship_str.split(' ')[0]
+                                extracted_data['shipment_date'] = ship_str
             
             # Description of goods - search for "ORDER OF" and get value 1 cell to the right
             elif "ORDER OF" in cell_str:
@@ -228,18 +242,27 @@ def preprocess_excel_flexible_auto(uploaded_file, max_rows=20):
     )
     grouped["AMOUNT"] = grouped["QTY"] * grouped["UNIT PRICE"]
 
-    # Read fabric type from column N, row 5 with bounds checking
+    # Read fabric type by searching for "Texture" keyword instead of fixed position
     try:
-        if len(df_raw) > 4 and len(df_raw.columns) > 13:
-            fabric_type_value = df_raw.iloc[4, 13]  # Row 5 (index 4), Column N (index 13)
-            if pd.isna(fabric_type_value) or str(fabric_type_value).strip() == "":
-                fabric_type_value = "Knitted"  # Default fallback
-            else:
-                fabric_type_value = str(fabric_type_value).strip()
-        else:
-            fabric_type_value = "Knitted"  # Default if bounds are exceeded
-    except (IndexError, KeyError):
-        fabric_type_value = "Knitted"  # Default fallback if cell doesn't exist
+        fabric_type_value = "Knitted"  # Default fallback
+        
+        # Search for "Texture" keyword in the dataframe
+        for row_idx, row in df_raw.iterrows():
+            for col_idx, cell in enumerate(row):
+                if pd.isna(cell):
+                    continue
+                cell_str = str(cell).strip()
+                if "Texture" in cell_str:
+                    if col_idx + 1 < len(row):
+                        texture_value = row.iloc[col_idx + 1]
+                        if not pd.isna(texture_value):
+                            fabric_type_value = str(texture_value).strip()
+                            break
+            if fabric_type_value != "Knitted":  # If we found a value, break outer loop
+                break
+                
+    except Exception as e:
+        fabric_type_value = "Knitted"  # Default fallback if search fails
 
     # static extras
     grouped["FABRIC TYPE"] = fabric_type_value
