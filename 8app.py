@@ -56,29 +56,41 @@ def extract_invoice_details(df_raw):
                     if not pd.isna(country_value):
                         extracted_data['loading_country'] = str(country_value).strip()
             
-            # Port of Loading - search for "Loading Port" and get value 1 cell to the right
-            elif "Loading Port" in cell_str:
+            # Port of Loading - search for multiple keywords and get value 1 cell to the right
+            elif ("Loading Port" in cell_str) or ("PORT OF LOADING" in cell_str):
                 if col_idx + 1 < len(row):
                     port_value = row.iloc[col_idx + 1]
                     if not pd.isna(port_value):
                         extracted_data['port_loading'] = str(port_value).strip()
             
-            # Agreed Shipment Date - search for "Agreed Ship Date" and get value 2 cells to the right
-            elif "Agreed Ship Date" in cell_str:
-                if col_idx + 2 < len(row):
-                    ship_value = row.iloc[col_idx + 2]
-                    if not pd.isna(ship_value):
-                        # Handle datetime objects by extracting only the date part
-                        if hasattr(ship_value, 'date'):
-                            # If it's a datetime object, get just the date
-                            extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
-                        else:
-                            # If it's already a string, clean it up
-                            ship_str = str(ship_value).strip()
-                            # Remove time portion if present (anything after space)
-                            if ' ' in ship_str:
-                                ship_str = ship_str.split(' ')[0]
-                            extracted_data['shipment_date'] = ship_str
+            # Agreed Shipment Date - search for multiple keywords and get value based on keyword
+            elif ("Agreed Ship Date" in cell_str) or ("ETA" in cell_str):
+                # For "Agreed Ship Date", look 2 cells to the right
+                if "Agreed Ship Date" in cell_str:
+                    if col_idx + 2 < len(row):
+                        ship_value = row.iloc[col_idx + 2]
+                        if not pd.isna(ship_value):
+                            # Handle datetime objects by extracting only the date part
+                            if hasattr(ship_value, 'date'):
+                                extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
+                            else:
+                                ship_str = str(ship_value).strip()
+                                if ' ' in ship_str:
+                                    ship_str = ship_str.split(' ')[0]
+                                extracted_data['shipment_date'] = ship_str
+                # For "ETA", look 1 cell to the right
+                elif "ETA" in cell_str:
+                    if col_idx + 1 < len(row):
+                        ship_value = row.iloc[col_idx + 1]
+                        if not pd.isna(ship_value):
+                            # Handle datetime objects by extracting only the date part
+                            if hasattr(ship_value, 'date'):
+                                extracted_data['shipment_date'] = ship_value.date().strftime('%d/%m/%Y')
+                            else:
+                                ship_str = str(ship_value).strip()
+                                if ' ' in ship_str:
+                                    ship_str = ship_str.split(' ')[0]
+                                extracted_data['shipment_date'] = ship_str
             
             # Description of goods - search for "ORDER OF" and get value 1 cell to the right
             elif "ORDER OF" in cell_str:
