@@ -12,7 +12,7 @@ import datetime
 
 # ===== Auto-extraction Function =====
 def extract_invoice_details(df_raw):
-    """Extract invoice details from Excel sheet using keyword search - only from first 6 rows"""
+    """Extract invoice details from Excel sheet using keyword search"""
     
     extracted_data = {}
     
@@ -24,10 +24,12 @@ def extract_invoice_details(df_raw):
     pi_num = f"SAR/LG/{random.randint(1000, 9999)}"
     extracted_data['pi_number'] = f"{pi_num} Dt. {pi_date}"
     
-    # Search through only the first 6 rows for keywords
-    max_search_rows = min(6, len(df_raw))
-    for row_idx in range(max_search_rows):
-        row = df_raw.iloc[row_idx]
+    # Search through only the first 6 rows for invoice details
+    for row_idx, row in df_raw.iterrows():
+        # Only check the first 6 rows (indices 0-5)
+        if row_idx >= 6:
+            break
+            
         for col_idx, cell in enumerate(row):
             if pd.isna(cell):
                 continue
