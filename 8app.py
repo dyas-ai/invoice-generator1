@@ -26,8 +26,7 @@ def extract_invoice_details(df_raw):
     
     # Search through only the first 6 rows for invoice details
     for row_idx, row in df_raw.iterrows():
-        # Only check the first 6 rows (indices 0-5)
-        if row_idx >= 6:
+        if row_idx >= 6:  # Only search first 6 rows (indices 0-5)
             break
             
         for col_idx, cell in enumerate(row):
