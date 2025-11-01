@@ -1,202 +1,195 @@
 import streamlit as st
+import pandas as pd
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from io import BytesIO
-from datetime import date
-import base64
+from datetime import datetime
 
-# --- Page setup ---
-st.set_page_config(page_title="Invoice Generator", page_icon="💼", layout="centered")
+# =========================
+# Streamlit Page Setup
+# =========================
+st.set_page_config(page_title="Invoice Generator", layout="wide")
 
-# --- Custom Styling ---
-st.markdown(
-    """
-    <style>
-    /* General page styling */
-    body {
-        background-color: #ffffff;
-        color: #000000;
-        font-family: 'Inter', sans-serif;
-    }
+# =========================
+# Minimal Black & White Theme Styling
+# =========================
+st.markdown("""
+<style>
+/* Overall app */
+.stApp {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+}
 
-    /* Streamlit default elements */
-    .stApp {
-        background-color: #ffffff;
-        color: #000000;
-    }
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: #000000;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+}
 
-    /* Input fields and text boxes */
-    .stTextInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #000;
-        background-color: #fff;
-        color: #000;
-    }
+/* Paragraph text */
+p, label, span, div {
+    color: #000000;
+}
 
-    .stNumberInput input {
-        border-radius: 8px;
-        border: 1px solid #000;
-        background-color: #fff;
-        color: #000;
-    }
+/* Rounded black buttons */
+div.stButton > button:first-child {
+    background-color: #000000;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6em 1.5em;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+}
+div.stButton > button:first-child:hover {
+    background-color: #222222;
+    transform: scale(1.03);
+}
 
-    /* Buttons */
-    div.stButton > button {
-        border-radius: 10px;
-        background-color: #000000 !important;
-        color: #ffffff !important;
-        border: none;
-        padding: 0.6em 1.2em;
-        font-size: 1em;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
+/* Input fields */
+.stTextInput > div > div > input,
+.stNumberInput input,
+.stTextArea textarea {
+    border-radius: 8px !important;
+    border: 1px solid #000000 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
 
-    div.stButton > button:hover {
-        background-color: #333333 !important;
-        color: #ffffff !important;
-        transform: scale(1.02);
-    }
+/* File uploader label */
+.stFileUploader label {
+    color: #000000 !important;
+    font-weight: 500 !important;
+}
 
-    /* Headers and Titles */
-    h1, h2, h3 {
-        color: #000;
-    }
+/* Tables */
+.stDataFrame, .stTable {
+    border-radius: 10px;
+    border: 1px solid #00000022;
+    padding: 8px;
+}
 
-    /* Horizontal line */
-    hr {
-        border: 1px solid #00000020;
-        margin: 1.5em 0;
-    }
+/* Divider lines */
+hr {
+    border: 0;
+    border-top: 1px solid #00000022;
+    margin: 1.5rem 0;
+}
 
-    /* File uploader box */
-    [data-testid="stFileUploader"] section {
-        border: 1px solid #000;
-        border-radius: 10px;
-        background-color: #fff;
-    }
+/* Remove Streamlit watermark and extra menus */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
 
-    /* Expander aesthetics */
-    details summary {
-        font-weight: 500;
-        border-radius: 8px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# =========================
+# App Title
+# =========================
+st.title("🧾 Invoice Generator")
+st.markdown("---")
 
-# --- App Title ---
-st.title("💼 Invoice Generator")
-st.caption("Generate professional black-and-white invoices with style.")
+# =========================
+# File Upload Section
+# =========================
+uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
-# --- Input Section ---
-st.subheader("🧾 Invoice Details")
-col1, col2 = st.columns(2)
-with col1:
-    invoice_no = st.text_input("Invoice Number", "INV-001")
-    sender_name = st.text_input("Your Name / Company")
-    sender_address = st.text_area("Your Address", height=90)
-with col2:
-    receiver_name = st.text_input("Client Name / Company")
-    receiver_address = st.text_area("Client Address", height=90)
-    invoice_date = st.date_input("Invoice Date", date.today())
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file)
 
-st.write("---")
+    st.subheader("📄 Uploaded Data Preview")
+    st.dataframe(df.head())
 
-st.subheader("📦 Add Items")
-items = []
-num_items = st.number_input("Number of items", 1, 20, 1)
-for i in range(int(num_items)):
-    st.markdown(f"**Item {i+1}**")
-    col1, col2, col3 = st.columns([3, 1, 1])
+    # Column mapping input
+    st.markdown("### 🧩 Column Mapping")
+    col1, col2, col3 = st.columns(3)
     with col1:
-        item_name = st.text_input(f"Description {i+1}", key=f"name_{i}")
+        name_col = st.selectbox("Select Client Name Column", df.columns)
     with col2:
-        qty = st.number_input(f"Qty {i+1}", min_value=1, key=f"qty_{i}")
+        amount_col = st.selectbox("Select Amount Column", df.columns)
     with col3:
-        price = st.number_input(f"Price {i+1}", min_value=0.0, key=f"price_{i}")
-    if item_name:
-        items.append((item_name, qty, price))
+        date_col = st.selectbox("Select Date Column", df.columns)
 
-st.write("---")
+    st.markdown("---")
 
-st.subheader("💰 Summary")
-subtotal = sum(q * p for _, q, p in items)
-tax_rate = st.number_input("Tax Rate (%)", 0.0, 50.0, 0.0)
-tax_amount = subtotal * tax_rate / 100
-total = subtotal + tax_amount
+    # Invoice info
+    st.subheader("🏷️ Invoice Details")
+    colA, colB = st.columns(2)
+    with colA:
+        company_name = st.text_input("Company Name", "Your Company Pvt. Ltd.")
+        invoice_prefix = st.text_input("Invoice Prefix", "INV")
+    with colB:
+        address = st.text_area("Company Address", "123 Street Name\nCity, State - ZIP")
+        invoice_date = st.date_input("Invoice Date", datetime.today())
 
-st.metric("Subtotal", f"₹{subtotal:,.2f}")
-st.metric("Tax", f"₹{tax_amount:,.2f}")
-st.metric("Total", f"₹{total:,.2f}")
+    st.markdown("---")
 
-st.write("---")
+    # =========================
+    # Generate Invoice PDFs
+    # =========================
+    if st.button("Generate Invoices"):
+        buffer = BytesIO()
 
-# --- Helper: Indian Format ---
-def indian_format(amount):
-    s, *d = str(round(amount, 2)).partition(".")
-    r = ",".join([s[-i-2 if i else None:-i or None] for i in range(0, len(s), 2)][::-1])
-    return "".join([r] + d)
+        for index, row in df.iterrows():
+            pdf = BytesIO()
+            doc = SimpleDocTemplate(pdf, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=18)
+            story = []
+            styles = getSampleStyleSheet()
 
-# --- Generate PDF ---
-def generate_invoice():
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    pdf.setTitle("Invoice")
+            client_name = str(row[name_col])
+            amount = row[amount_col]
+            date_val = row[date_col]
 
-    # Header
-    pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawString(50, height - 50, "INVOICE")
+            # Title
+            story.append(Paragraph(f"<b>{company_name}</b>", styles['Title']))
+            story.append(Paragraph(address.replace("\n", "<br/>"), styles['Normal']))
+            story.append(Spacer(1, 12))
+            story.append(Paragraph(f"<b>Invoice:</b> {invoice_prefix}-{index+1}", styles['Heading3']))
+            story.append(Paragraph(f"<b>Date:</b> {invoice_date.strftime('%d %B %Y')}", styles['Normal']))
+            story.append(Spacer(1, 12))
 
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(50, height - 80, f"From: {sender_name}")
-    pdf.drawString(50, height - 95, sender_address)
-    pdf.drawString(50, height - 120, f"To: {receiver_name}")
-    pdf.drawString(50, height - 135, receiver_address)
-    pdf.drawString(50, height - 160, f"Date: {invoice_date}")
-    pdf.drawString(400, height - 160, f"Invoice No: {invoice_no}")
+            # Client info
+            story.append(Paragraph(f"<b>Bill To:</b> {client_name}", styles['Heading3']))
+            story.append(Spacer(1, 12))
 
-    # Table header
-    y = height - 200
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(50, y, "Description")
-    pdf.drawString(300, y, "Qty")
-    pdf.drawString(350, y, "Price")
-    pdf.drawString(450, y, "Total")
+            # Table
+            data = [["Description", "Amount (INR)"],
+                    [f"Invoice for {client_name}", f"₹{amount:,.2f}"]]
+            table = Table(data, colWidths=[300, 150])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ]))
+            story.append(table)
+            story.append(Spacer(1, 24))
 
-    # Table content
-    pdf.setFont("Helvetica", 10)
-    y -= 20
-    for item_name, qty, price in items:
-        pdf.drawString(50, y, item_name)
-        pdf.drawString(310, y, str(qty))
-        pdf.drawString(360, y, f"₹{price:,.2f}")
-        pdf.drawString(460, y, f"₹{qty*price:,.2f}")
-        y -= 20
+            story.append(Paragraph(f"<b>Total Due:</b> ₹{amount:,.2f}", styles['Heading2']))
+            story.append(Spacer(1, 12))
+            story.append(Paragraph("Thank you for your business!", styles['Normal']))
 
-    # Totals
-    y -= 20
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(400, y, "Subtotal:")
-    pdf.drawString(460, y, f"₹{subtotal:,.2f}")
-    y -= 15
-    pdf.drawString(400, y, f"Tax ({tax_rate}%):")
-    pdf.drawString(460, y, f"₹{tax_amount:,.2f}")
-    y -= 15
-    pdf.drawString(400, y, "Total:")
-    pdf.drawString(460, y, f"₹{total:,.2f}")
+            doc.build(story)
+            pdf.seek(0)
+            buffer.write(pdf.read())
 
-    pdf.showPage()
-    pdf.save()
-    buffer.seek(0)
-    return buffer
+        buffer.seek(0)
+        st.download_button(
+            label="⬇️ Download All Invoices (ZIP)",
+            data=buffer,
+            file_name=f"Invoices_{datetime.now().strftime('%Y%m%d')}.zip",
+            mime="application/zip"
+        )
 
-# --- Button and Download Section ---
-if st.button("🧾 Generate Invoice"):
-    pdf_buffer = generate_invoice()
-    pdf_bytes = pdf_buffer.getvalue()
-    b64 = base64.b64encode(pdf_bytes).decode()
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="invoice.pdf" style="text-decoration:none;"><button style="border-radius:10px;background-color:black;color:white;padding:0.5em 1.2em;border:none;">⬇️ Download Invoice</button></a>'
-    st.markdown(href, unsafe_allow_html=True)
+else:
+    st.info("Please upload an Excel file to begin.")
