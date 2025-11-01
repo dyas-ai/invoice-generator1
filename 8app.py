@@ -522,6 +522,66 @@ def generate_proforma_invoice(df, form_data):
 
 # ===== Streamlit App =====
 st.set_page_config(page_title="Proforma Invoice Generator", layout="centered")
+
+# === Inject Questrial font + hierarchy CSS for Streamlit UI ===
+st.markdown("""
+    <style>
+    /* Import Questrial font from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Questrial&display=swap');
+
+    /* Apply Questrial globally within Streamlit app */
+    html, body, [class*="css"]  {
+        font-family: 'Questrial', sans-serif !important;
+        color: #FFFFFF;
+        background-color: #000000;
+    }
+
+    /* Headings hierarchy matching your image */
+    h1 {
+        font-size: 36px !important;
+        font-weight: 400 !important;
+        margin-bottom: 6px !important;
+        letter-spacing: 0.2px !important;
+    }
+    h2 {
+        font-size: 32px !important;
+        font-weight: 400 !important;
+        margin-bottom: 5px !important;
+    }
+    h3 {
+        font-size: 24px !important;
+        font-weight: 400 !important;
+        margin-bottom: 4px !important;
+    }
+    h4 {
+        font-size: 20px !important;
+        font-weight: 400 !important;
+        margin-bottom: 3px !important;
+    }
+    p, label, div, span, li, input, textarea {
+        font-size: 16px !important;
+        font-weight: 400 !important;
+    }
+
+    /* Sidebar style */
+    [data-testid="stSidebar"] {
+        background-color: #0b0b0b;
+        font-family: 'Questrial', sans-serif !important;
+    }
+
+    /* Buttons and inputs consistency */
+    .stButton>button, button, input, select, textarea {
+        font-family: 'Questrial', sans-serif !important;
+    }
+
+    /* Keep table fonts legible */
+    .stDataFrame, .stTable {
+        font-family: 'Questrial', sans-serif !important;
+    }
+
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("📄 Proforma Invoice Generator")
 
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
@@ -674,4 +734,3 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
-
